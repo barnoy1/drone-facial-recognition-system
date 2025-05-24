@@ -6,8 +6,9 @@ import argparse
 import logging
 import warnings
 from pathlib import Path
-from utils.create_embedding import create_stable_embedding, save_embedding
+from utils.create_embedding import create_stable_features, save_features
 from utils.face_utils import process_image
+from utils.visualization import draw_results
 
 # Configure logging and suppress warnings
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
@@ -55,10 +56,8 @@ def try_camera(device_id):
 def main():
     """Main function for real-time streaming face recognition."""
     parser = argparse.ArgumentParser(description='Real-time Face Recognition System')
-    parser.add_argument('--reference-dir', type=str,
-                      help='Directory containing reference images')
     parser.add_argument('--embeddings-file', type=str,
-                      help='File to store/load face embeddings')
+                      help='File to store/load face features')
     
     args = parser.parse_args()
 
@@ -67,17 +66,17 @@ def main():
     # Setup paths
     project_root = get_project_root()
     data_dir = get_data_dir()
-    reference_dir = args.reference_dir or (data_dir / "lfw_dataset/target")
+    reference_dir = data_dir / "lfw_dataset/target"  # Removed reference-dir argument
     embeddings_file = args.embeddings_file or (data_dir / "embeddings.npy")
     
-    # Load or create embeddings
+    # Load or create features
     try:
-        reference_embeddings = np.load(embeddings_file, allow_pickle=True).item()
+        reference_features = np.load(embeddings_file, allow_pickle=True).item()
     except FileNotFoundError:
-        print("No existing embeddings found. Creating new reference embeddings...")
-        name, embedding = create_stable_embedding(reference_dir)
-        save_embedding(name, embedding, embeddings_file.parent)
-        reference_embeddings = np.load(embeddings_file, allow_pickle=True).item()
+        print("No existing features found. Creating new reference features...")
+        name, features = create_stable_features(reference_dir)
+        save_features(name, features, embeddings_file.parent)
+        reference_features = np.load(embeddings_file, allow_pickle=True).item()
 
     # Try to open the camera
     cap = None
@@ -113,16 +112,10 @@ def main():
             fps = frame_count / elapsed_time
             print(f"FPS: {fps:.2f}")
 
-        results = process_image(frame, reference_embeddings)
+        results = process_image(frame, reference_features)
         
-        # Draw results on frame
-        for result in results:
-            x1, y1, x2, y2 = result['box']
-            color = (0, 255, 0) if result['is_match'] else (0, 0, 255)
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-            label = f"{result['name']} ({result['similarity']:.2f})"
-            cv2.putText(frame, label, (x1, y1 - 10),
-                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
+        # Draw results on frame with landmarks
+        draw_results(frame, results)
 
         # Display the resulting frame
         cv2.imshow('Facial Recognition', frame)
