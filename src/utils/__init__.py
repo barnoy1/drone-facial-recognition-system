@@ -3,16 +3,23 @@
 This module provides common utilities for face detection, recognition, and evaluation.
 """
 
-from .face_utils import (
-    detect_faces,
-    extract_features,
-    compare_embeddings,
-    is_match,
-    process_image,
-    get_target_name_from_dir
+from .create_embedding import (
+    create_stable_features,
+    save_features
 )
 
-from .create_embedding import (
-    create_stable_embedding,
-    save_embedding
+from .face_utils import (
+    extract_features,
+    get_person_features,
+    process_image,
+    compare_embeddings
 )
+
+__all__ = [
+    'create_stable_features',
+    'save_features',
+    'extract_features',
+    'get_person_features',
+    'process_image',
+    'compare_embeddings'
+]

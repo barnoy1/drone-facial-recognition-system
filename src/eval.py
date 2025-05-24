@@ -6,8 +6,8 @@ import argparse
 import logging
 import warnings
 from pathlib import Path
-from utils.create_embedding import create_stable_embedding, save_embedding
-from utils.face_utils import process_image, extract_features, get_target_name_from_dir
+from utils.create_embedding import create_stable_features, save_features
+from utils.face_utils import process_image, get_person_features
 
 # Configure logging with colors
 import colorlog
@@ -128,7 +128,7 @@ def create_summary_visualization(stats, output_path):
     
     cv2.imwrite(str(output_path), summary)
 
-def evaluate_detection_statistics(input_dir, reference_embeddings, output_dir):
+def evaluate_detection_statistics(input_dir, reference_features, output_dir):
     """Evaluate detection statistics and save processed images."""
     stats = {
         'total_samples': 0,
@@ -154,7 +154,7 @@ def evaluate_detection_statistics(input_dir, reference_embeddings, output_dir):
     output_dir = Path(output_dir)
     processed_output_dir = output_dir / 'processed_samples'
     
-    print("\nProcessing samples...")
+    logger.info("\nProcessing samples...")
     input_path = Path(input_dir)
     
     # Get both positive and negative samples
@@ -172,17 +172,17 @@ def evaluate_detection_statistics(input_dir, reference_embeddings, output_dir):
     stats['total_positives'] = len(positive_files)
     stats['total_negatives'] = len(negative_files)
     
-    print(f"Found {len(positive_files)} positive samples and {len(negative_files)} negative samples")
+    logger.info(f"Found {len(positive_files)} positive samples and {len(negative_files)} negative samples")
     
     for img_path in image_files:
-        # Check if this is a positive sample (same person) based on filename
-        is_positive_sample = any(ref_name in img_path.stem for ref_name in reference_embeddings.keys())
+        # Check if this is a positive sample based on filename
+        is_positive_sample = any(ref_name in img_path.stem for ref_name in reference_features.keys())
         
         image = cv2.imread(str(img_path))
         if image is None:
             continue
             
-        results = process_image(image, reference_embeddings)
+        results = process_image(image, reference_features)
         
         if len(results) > 1:
             stats['multiple_faces_detected'] += 1
@@ -200,21 +200,20 @@ def evaluate_detection_statistics(input_dir, reference_embeddings, output_dir):
         else:
             stats['confidence_scores_negative'].append(max_confidence)
         
-        # For positive samples (includes target name), we want matches
-        # For negative samples (different people), we don't want matches
+        # For positive samples, we want matches
         if is_positive_sample:
             if is_match:
-                stats['true_positives'] += 1  # Correctly matched a positive sample
+                stats['true_positives'] += 1
             else:
-                stats['false_negatives'] += 1  # Failed to match a positive sample
+                stats['false_negatives'] += 1
         else:
             if is_match:
-                stats['false_positives'] += 1  # Incorrectly matched a negative sample
+                stats['false_positives'] += 1
             else:
-                stats['true_negatives'] += 1  # Correctly rejected a negative sample
+                stats['true_negatives'] += 1
             
-        # Save processed image with detection results
-        stats_text = f"Match: {is_match}, Confidence: {max([r['similarity'] for r in results], default=0):.2f}"
+        # Save processed image with detection and landmark results
+        stats_text = f"Match: {is_match}, Confidence: {max_confidence:.2f}"
         save_processed_image(image, results, stats_text, processed_output_dir, img_path.name)
     
     # Calculate final statistics
@@ -334,9 +333,7 @@ def main():
     """Main function for evaluation."""
     parser = argparse.ArgumentParser(description='Evaluate Face Recognition System')
     parser.add_argument('--input', type=str, required=True,
-                      help='Directory containing test images')
-    parser.add_argument('--reference-dir', type=str, required=True,
-                      help='Directory containing reference images')
+                      help='Directory containing test images and target subdirectory')
     parser.add_argument('--embeddings-file', type=str,
                       help='File to store/load face embeddings')
     parser.add_argument('--output-dir', type=str,
@@ -357,27 +354,42 @@ def main():
     logger.info(f"Using embeddings file: {embeddings_file}")
     logger.info(f"Output directory: {output_dir}")
     
-    # Load or create embeddings
+    # Load features
     try:
-        reference_embeddings = np.load(embeddings_file, allow_pickle=True).item()
-        logger.info(f"Loaded embeddings for: {list(reference_embeddings.keys())}")
+        reference_features = np.load(embeddings_file, allow_pickle=True).item()
+        logger.info(f"Loaded features for: {list(reference_features.keys())}")
+        # Maintain backward compatibility
+        if isinstance(next(iter(reference_features.values())), np.ndarray):
+            logger.warning("Converting old format embeddings to new feature format...")
+            reference_features = {
+                name: {'encoding': embedding, 'landmarks': None}
+                for name, embedding in reference_features.items()
+            }
     except FileNotFoundError:
-        logger.info("No existing embeddings found. Creating new reference embeddings...")
+        logger.info("No existing features found. Creating new reference features...")
+        name, features = create_stable_features(reference_dir)
+        save_features(name, features, embeddings_file.parent)
+        reference_features = np.load(embeddings_file, allow_pickle=True).item()
+        logger.info(f"Created and loaded features for: {list(reference_features.keys())}")
         
-    # Get input directory
+    # Get input and reference directories
     input_dir = Path(args.input)
+    reference_dir = input_dir / 'target'
+    
     if not input_dir.exists():
         logger.error(f"Error: Input directory {input_dir} does not exist")
+        return
+    if not reference_dir.exists():
+        logger.error(f"Error: Target directory {reference_dir} does not exist")
         return
     
     # List all image files
     image_files = list(input_dir.glob('*.jpg'))
     logger.info(f"Found {len(image_files)} image files to process")
-    
-    # Run evaluation
+     # Run evaluation
     logger.info("\nRunning evaluation...")
-    stats = evaluate_detection_statistics(input_dir, reference_embeddings, output_dir)
-    
+    stats = evaluate_detection_statistics(input_dir, reference_features, output_dir)
+
     # Save summary statistics
     logger.info("\n=== Detection Statistics ===\n")
     logger.info("Sample Counts:")

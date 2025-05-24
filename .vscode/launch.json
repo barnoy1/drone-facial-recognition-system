@@ -2,27 +2,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Camera Stream Mode",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/main.py",
-            "args": ["--mode", "stream"],
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Folder Mode",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/main.py",
-            "args": [
-                "--mode", "folder",
-                "--input", "${workspaceFolder}/data/lfw_dataset/positive_samples",
-                "--reference-dir", "${workspaceFolder}/data/lfw_dataset/target",
-                "--embeddings-file", "${workspaceFolder}/data/embeddings.npy"
-            ],
-            "console": "integratedTerminal"
-        },
-        {
             "name": "Setup Random LFW Dataset (random)",
             "type": "debugpy",
             "request": "launch",
@@ -50,65 +29,6 @@
             "console": "integratedTerminal"
         },
         {
-            "name": "Evaluate on LFW Dataset",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/eval.py",
-            "args": [
-                "--input", "${workspaceFolder}/data/lfw_dataset",
-                "--reference-dir", "${workspaceFolder}/data/lfw_dataset/target",
-                "--embeddings-file", "${workspaceFolder}/data/embeddings.npy",
-                "--output-dir", "${workspaceFolder}/data/evaluation_results"
-            ],
-            "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}"
-        },
-        {
-            "name": "Create Stable Embedding",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/utils/create_embedding.py",
-            "args": [
-                "--input", "${workspaceFolder}/data/lfw_dataset/positive_samples",
-                "--output-dir", "${workspaceFolder}/data"
-            ],
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Face Recognition Evaluation (Full)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/eval.py",
-            "args": [
-                "--input",
-                "${workspaceFolder}/data/lfw_dataset/positive_samples",
-                "--reference-dir",
-                "${workspaceFolder}/data/lfw_dataset/target",
-                "--embeddings-file",
-                "${workspaceFolder}/data/embeddings.npy",
-                "--output-dir",
-                "${workspaceFolder}/data/evaluation_results_positive"
-            ],
-            "console": "integratedTerminal"
-        },
-        {
-            "name": "Face Recognition Evaluation (Negatives)",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/src/eval.py",
-            "args": [
-                "--input",
-                "${workspaceFolder}/data/lfw_dataset/negative_samples",
-                "--reference-dir",
-                "${workspaceFolder}/data/lfw_dataset/target",
-                "--embeddings-file",
-                "${workspaceFolder}/data/embeddings.npy",
-                "--output-dir",
-                "${workspaceFolder}/data/evaluation_results_negative"
-            ],
-            "console": "integratedTerminal"
-        },
-        {
             "name": "Evaluate LFW Dataset",
             "type": "debugpy",
             "request": "launch",
@@ -120,15 +40,6 @@
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"
-        }
-    ],
-    "compounds": [
-        {
-            "name": "Complete Face Recognition Evaluation",
-            "configurations": [
-                "Face Recognition Evaluation (Full)",
-                "Face Recognition Evaluation (Negatives)"
-            ]
         }
     ]
 }
