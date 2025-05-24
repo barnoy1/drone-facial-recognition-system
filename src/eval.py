@@ -9,9 +9,29 @@ from pathlib import Path
 from utils.create_embedding import create_stable_embedding, save_embedding
 from utils.face_utils import process_image, extract_features, get_target_name_from_dir
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure logging with colors
+import colorlog
+
+handler = colorlog.StreamHandler()
+handler.setFormatter(colorlog.ColoredFormatter(
+    '%(log_color)s%(message)s',
+    log_colors={
+        'DEBUG':    'cyan',
+        'INFO':     'green',
+        'WARNING':  'yellow',
+        'ERROR':    'red',
+        'CRITICAL': 'red,bg_white',
+    }
+))
+
+logger = colorlog.getLogger()
+logger.addHandler(handler)
+logger.setLevel(logging.INFO)
+
+# Remove default handler to avoid duplicate logs
+logger.propagate = False
+if logger.handlers:
+    logger.handlers = [handler]
 
 # Configure warnings
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
@@ -343,11 +363,7 @@ def main():
         logger.info(f"Loaded embeddings for: {list(reference_embeddings.keys())}")
     except FileNotFoundError:
         logger.info("No existing embeddings found. Creating new reference embeddings...")
-        name, embedding = create_stable_embedding(args.reference_dir)
-        save_embedding(name, embedding, embeddings_file.parent)
-        reference_embeddings = np.load(embeddings_file, allow_pickle=True).item()
-        logger.info(f"Created and loaded new embeddings for: {list(reference_embeddings.keys())}")
-    
+        
     # Get input directory
     input_dir = Path(args.input)
     if not input_dir.exists():
