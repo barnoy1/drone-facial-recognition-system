@@ -2,22 +2,35 @@ import cv2
 import numpy as np
 import os
 import time
-from reference_creation import ReferenceCreator
-from human_detection import detect_faces
-from feature_extraction import extract_features
-from comparison import compare_embeddings
-from thresholding import is_match
+import argparse
+import logging
+import warnings
+from pathlib import Path
+from utils.create_embedding import create_stable_embedding, save_embedding
+from utils.face_utils import process_image
+
+# Configure logging and suppress warnings
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+warnings.filterwarnings('ignore')
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+def get_project_root():
+    """Get the project root directory."""
+    return Path(__file__).resolve().parent.parent
+
+def get_data_dir():
+    """Get the data directory."""
+    return get_project_root() / 'data'
 
 def try_camera(device_id):
+    """Try to open and configure a camera device."""
     print(f"Attempting to open camera {device_id}...")
     
-    # Check if device exists
     device_path = f"/dev/video{device_id}"
     if not os.path.exists(device_path):
         print(f"Camera device {device_path} does not exist")
         return None
         
-    # Try to open the camera
     cap = cv2.VideoCapture(device_id, cv2.CAP_V4L2)
     if not cap.isOpened():
         print(f"Could not open camera {device_id}")
@@ -29,7 +42,6 @@ def try_camera(device_id):
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
     cap.set(cv2.CAP_PROP_FPS, 30)
     
-    # Try to read a test frame
     ret, frame = cap.read()
     if not ret or frame is None:
         print(f"Could not read frame from camera {device_id}")
@@ -41,8 +53,32 @@ def try_camera(device_id):
     return cap
 
 def main():
-    print("Starting facial recognition system...")
+    """Main function for real-time streaming face recognition."""
+    parser = argparse.ArgumentParser(description='Real-time Face Recognition System')
+    parser.add_argument('--reference-dir', type=str,
+                      help='Directory containing reference images')
+    parser.add_argument('--embeddings-file', type=str,
+                      help='File to store/load face embeddings')
     
+    args = parser.parse_args()
+
+    print("Starting real-time face recognition system...")
+    
+    # Setup paths
+    project_root = get_project_root()
+    data_dir = get_data_dir()
+    reference_dir = args.reference_dir or (data_dir / "lfw_dataset/target")
+    embeddings_file = args.embeddings_file or (data_dir / "embeddings.npy")
+    
+    # Load or create embeddings
+    try:
+        reference_embeddings = np.load(embeddings_file, allow_pickle=True).item()
+    except FileNotFoundError:
+        print("No existing embeddings found. Creating new reference embeddings...")
+        name, embedding = create_stable_embedding(reference_dir)
+        save_embedding(name, embedding, embeddings_file.parent)
+        reference_embeddings = np.load(embeddings_file, allow_pickle=True).item()
+
     # Try to open the camera
     cap = None
     for device_id in range(2):  # Try first two video devices
@@ -59,15 +95,6 @@ def main():
     actual_height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     actual_fps = cap.get(cv2.CAP_PROP_FPS)
     print(f"Camera properties: {actual_width}x{actual_height} @ {actual_fps}fps")
-
-    # Initialize ReferenceCreator and load embeddings
-    reference_creator = ReferenceCreator('reference_images', 'embeddings.npy')
-    try:
-        reference_embeddings = np.load('embeddings.npy', allow_pickle=True).item()
-    except FileNotFoundError:
-        print("No existing embeddings found. Creating new reference embeddings...")
-        reference_creator.create_references()
-        reference_embeddings = np.load('embeddings.npy', allow_pickle=True).item()
 
     print("Starting video capture. Press 'q' to quit.")
     frame_count = 0
@@ -86,37 +113,16 @@ def main():
             fps = frame_count / elapsed_time
             print(f"FPS: {fps:.2f}")
 
-        # Convert frame from BGR to RGB for MTCNN
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        try:
-            # Detect faces in the frame
-            boxes = detect_faces(frame_rgb)
-            if boxes is not None:
-                for box in boxes:
-                    x1, y1, x2, y2 = [int(b) for b in box]
-                    face = frame[y1:y2, x1:x2]
-
-                    # Extract features from the detected face
-                    features = extract_features(face)
-                    if features is not None:
-                        # Compare with reference embeddings
-                        for name, ref_embedding in reference_embeddings.items():
-                            similarity = compare_embeddings(features, ref_embedding)
-                            
-                            # Check if the similarity exceeds the threshold
-                            if is_match(similarity):
-                                label = f"Match: {name}"
-                                break
-                        else:
-                            label = "Unknown"
-
-                        # Draw bounding box and label on the frame
-                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-                        cv2.putText(frame, label, (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
-        except Exception as e:
-            print(f"Error processing frame: {e}")
-            continue
+        results = process_image(frame, reference_embeddings)
+        
+        # Draw results on frame
+        for result in results:
+            x1, y1, x2, y2 = result['box']
+            color = (0, 255, 0) if result['is_match'] else (0, 0, 255)
+            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
+            label = f"{result['name']} ({result['similarity']:.2f})"
+            cv2.putText(frame, label, (x1, y1 - 10),
+                       cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
         # Display the resulting frame
         cv2.imshow('Facial Recognition', frame)
