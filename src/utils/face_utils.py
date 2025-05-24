@@ -146,13 +146,11 @@ def process_image(image, reference_features):
         # Get features
         features = get_person_features(face_image)
         if features is None:
-            continue
-            
-        # Compare with each reference
+            continue            # Compare with each reference
         best_match = {'name': 'Unknown', 'similarity': 0.0}
         for name, ref_features in reference_features.items():
-            # Compare embeddings
-            similarity = compare_embeddings(features['encoding'], ref_features['encoding'])
+            # Compare both embeddings and landmarks
+            similarity = compare_features(features, ref_features)
             if similarity > best_match['similarity']:
                 best_match = {'name': name, 'similarity': similarity}
         
@@ -181,3 +179,78 @@ def get_target_name_from_dir(target_dir):
     # Get first image file and remove extension
     target_name = os.path.splitext(target_files[0])[0]
     return target_name
+
+def compare_landmarks(landmarks1, landmarks2):
+    """Compare two sets of facial landmarks and return similarity score.
+    
+    Args:
+        landmarks1: First set of facial landmarks
+        landmarks2: Second set of facial landmarks
+        
+    Returns:
+        float: Similarity score between 0 and 1
+    """
+    if landmarks1 is None or landmarks2 is None:
+        return 0.0
+    
+    total_distance = 0
+    point_count = 0
+    
+    # Compare corresponding landmarks for each facial feature
+    for feature in landmarks1.keys():
+        if feature not in landmarks2:
+            continue
+            
+        points1 = landmarks1[feature]
+        points2 = landmarks2[feature]
+        
+        # Skip if different number of points
+        if len(points1) != len(points2):
+            continue
+            
+        # Calculate average distance between corresponding points
+        for p1, p2 in zip(points1, points2):
+            distance = np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+            total_distance += distance
+            point_count += 1
+    
+    if point_count == 0:
+        return 0.0
+        
+    # Convert average distance to similarity score (0 to 1)
+    avg_distance = total_distance / point_count
+    similarity = 1 / (1 + avg_distance/50)  # Normalize by typical face size (adjusted for better sensitivity)
+    return float(similarity)
+
+def compare_features(features1, features2, embedding_weight=0.85):
+    """Compare two feature sets using both embeddings and landmarks.
+    
+    Args:
+        features1: First feature set containing encoding and landmarks
+        features2: Second feature set containing encoding and landmarks
+        embedding_weight: Weight given to embedding similarity (0 to 1, default 0.85)
+        
+    Returns:
+        float: Combined similarity score between 0 and 1
+    """
+    if features1 is None or features2 is None:
+        return 0.0
+        
+    # Compare embeddings
+    embedding_similarity = compare_embeddings(
+        features1.get('encoding'),
+        features2.get('encoding')
+    )
+    
+    # Compare landmarks
+    landmark_similarity = compare_landmarks(
+        features1.get('landmarks'),
+        features2.get('landmarks')
+    )
+    
+    # Weighted average of similarities
+    landmark_weight = 1 - embedding_weight
+    combined_similarity = (embedding_similarity * embedding_weight + 
+                         landmark_similarity * landmark_weight)
+    
+    return float(combined_similarity)

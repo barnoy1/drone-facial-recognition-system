@@ -192,7 +192,7 @@ def evaluate_detection_statistics(input_dir, reference_features, output_dir):
         stats['confidence_scores'].append(max_confidence)
             
         # Consider it a match if any detected face has high similarity
-        is_match = any(r['name'] != 'Unknown' and r['similarity'] >= 0.65 for r in results)
+        is_match = any(r['name'] != 'Unknown' and r['similarity'] >= 0.60 for r in results)
         
         # Store confidence scores separately for positive and negative samples
         if is_positive_sample:
