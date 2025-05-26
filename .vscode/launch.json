@@ -5,9 +5,10 @@
             "name": "Setup Random LFW Dataset (random)",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/utils/build_testset_lfw.py",
+            "program": "${workspaceFolder}/core/face/utils/build_testset_lfw.py",
             "args": [
-                "--output-dir", "${workspaceFolder}/data/lfw_dataset",
+                "--input-dir", "/home/ron/Desktop/repo/projects/datasets/lfw",
+                "--output-dir", "${workspaceFolder}/core/face/dataset/lfw_dataset",
                 "--num-positive", "3",
                 "--num-negative", "3",
                 "--similarity", "0.3"
@@ -18,9 +19,10 @@
             "name": "Setup LFW Dataset (specific person)",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/utils/build_testset_lfw.py",
+            "program": "${workspaceFolder}/core/face/utils/build_testset_lfw.py",
             "args": [
-                "--output-dir", "${workspaceFolder}/data/lfw_dataset",
+                "--input-dir", "/home/ron/Desktop/repo/projects/datasets/lfw",
+                "--output-dir", "${workspaceFolder}/core/face/dataset/lfw_dataset",
                 "--num-positive", "5",
                 "--num-negative", "5",
                 "--similarity", "0.3",
@@ -29,14 +31,36 @@
             "console": "integratedTerminal"
         },
         {
+            "name": "Create Embeddings for LFW Dataset",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/core/face/utils/create_embedding.py",
+            "args": [
+                "--output-dir", "${workspaceFolder}/core/face/dataset/lfw_dataset",
+                "--input", "${workspaceFolder}/core/face/dataset/lfw_dataset/positive_samples",
+            ],
+            "console": "integratedTerminal"
+        },
+        {
             "name": "Evaluate LFW Dataset",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/src/eval.py",
+            "program": "${workspaceFolder}/core/face/eval.py",
             "args": [
-                "--input", "${workspaceFolder}/data/lfw_dataset",
-                "--embeddings-file", "${workspaceFolder}/data/embeddings.npy",
-                "--output-dir", "${workspaceFolder}/out/evaluation_results_complete"
+                "--input", "${workspaceFolder}/core/face/dataset/lfw_dataset",
+                "--embeddings-file", "${workspaceFolder}/core/face/dataset/lfw_dataset/embeddings.npy",
+                "--output-dir", "${workspaceFolder}/out/face/evaluation_results"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Inferece LFW Dataset",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/core/face/inference.py",
+            "args": [
+                "--embeddings-file", "${workspaceFolder}/core/face/dataset/lfw_dataset/embeddings.npy",
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"

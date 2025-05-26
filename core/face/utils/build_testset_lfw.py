@@ -261,6 +261,7 @@ def find_similar_people(target_person_dir, other_people, lfw_dir, num_samples, m
     return [(x['person'], x['similarity']) for x in similar_people[:actual_samples]]
 
 def setup_dataset(num_positive_samples=5, num_negative_samples=5, 
+                  input_dir='lfw_dataset', 
                   output_dir='lfw_dataset', max_age_diff=8, similarity_threshold=0.3,
                   target_person_name=None):
     """
@@ -278,21 +279,20 @@ def setup_dataset(num_positive_samples=5, num_negative_samples=5,
         tuple: (success status, target person name if successful)
     """
     # Setup paths
-    base_dir = Path(output_dir)
-    lfw_dir = base_dir / 'lfw' / 'lfw-deepfunneled' / 'lfw-deepfunneled'
-    people_csv = base_dir / 'lfw' / 'people.csv'
+    input_dir = Path(input_dir)
+    lfw_dir = input_dir  / 'lfw-deepfunneled' / 'lfw-deepfunneled'
+    people_csv = input_dir / 'people.csv'
     
     # Create and clean output directories
-    target_dir = base_dir / "target"
-    positive_dir = base_dir / "positive_samples"
-    negative_dir = base_dir / "negative_samples"
-    temp_dir = base_dir / "temp"
+    target_dir = output_dir / "target"
+    positive_dir = output_dir / "positive_samples"
+    negative_dir = output_dir / "negative_samples"
     
     # Clean up previous run
-    cleanup_directories([target_dir, positive_dir, negative_dir, temp_dir])
+    cleanup_directories([target_dir, positive_dir, negative_dir])
     
     # Extract LFW dataset if needed
-    if not extract_lfw_dataset(base_dir):
+    if not extract_lfw_dataset(input_dir):
         return False, None
 
     # Read and process people.csv
@@ -381,19 +381,13 @@ def setup_dataset(num_positive_samples=5, num_negative_samples=5,
         print(f"Error setting up dataset: {str(e)}")
         return False, None
 
-def get_lfw_path():
-    """Get the path to the LFW dataset."""
-    base_path = Path(__file__).resolve().parent.parent.parent
-    lfw_path = base_path / 'data' / 'lfw_dataset' / 'lfw' / 'lfw-deepfunneled' / 'lfw-deepfunneled'
-    if not lfw_path.exists():
-        raise ValueError(f"LFW dataset not found at {lfw_path}")
-    return lfw_path
-
 def main():
     import argparse
     parser = argparse.ArgumentParser(description='Set up face recognition dataset from local LFW dataset')
     parser.add_argument('--output-dir', default='lfw_dataset',
                       help='Output directory (should contain the lfw directory)')
+    parser.add_argument('--input-dir', default='lfw_dataset',
+                      help='Input directory (should contain the lfw directory)')
     parser.add_argument('--num-positive', type=int, default=5,
                       help='Number of positive samples')
     parser.add_argument('--num-negative', type=int, default=5,
@@ -409,6 +403,7 @@ def main():
     success, target_person = setup_dataset(
         num_positive_samples=args.num_positive,
         num_negative_samples=args.num_negative,
+        input_dir=args.input_dir,
         output_dir=args.output_dir,
         max_age_diff=args.max_age_diff,
         similarity_threshold=args.similarity,

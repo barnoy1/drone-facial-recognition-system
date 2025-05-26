@@ -6,8 +6,8 @@ import argparse
 import logging
 import warnings
 from pathlib import Path
-from utils.create_embedding import create_stable_features, save_features
-from utils.face_utils import process_image, get_person_features
+from core.face.utils.create_embedding import create_stable_features, save_features
+from core.face.utils.face_utils import process_image, get_person_features
 
 # Configure logging with colors
 import colorlog
