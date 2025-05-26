@@ -16,9 +16,10 @@ def main():
     
     try:
         # Initialize configuration
-        config_manager = ConfigManager()
-        config_manager.load_config(args.config)
-        
+        # Initialize ConfigManager singleton
+        config_manager = ConfigManager.instance()
+        config_manager.initialize(args.config)
+
         # Create Qt application
         app = QApplication(sys.argv)
         

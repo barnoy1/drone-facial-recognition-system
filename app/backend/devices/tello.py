@@ -3,7 +3,9 @@ import time
 import cv2
 import numpy as np
 from typing import Optional
-from ..config.config_manager import ConfigManager
+
+from app.backend import ConfigManager
+
 
 class TelloDevice(ABC):
     """Abstract base class for Tello device implementations."""
@@ -269,8 +271,8 @@ class TelloFactory:
     
     @staticmethod
     def create_tello() -> TelloDevice:
-        config = ConfigManager()
-        
+        config = ConfigManager.instance()
+
         try:
             # Wait for config to be loaded
             if not config.config:

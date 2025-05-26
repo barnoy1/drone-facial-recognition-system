@@ -1,6 +1,7 @@
 from typing import Optional
 import numpy as np
 
+from app.backend import ConfigManager
 from app.backend.devices.tello import TelloFactory
 from app.backend.pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
 from app.backend.pipeline.pipeline import Pipeline, PipelineState
@@ -14,7 +15,7 @@ class DronePresenter:
         self.view = view
         self.pipeline: Optional[Pipeline] = None
         self.tello = None
-        
+
         # Connect view signals
         self.view.start_mission.connect(self.start_mission)
         self.view.emergency_stop.connect(self.emergency_stop)
@@ -27,6 +28,10 @@ class DronePresenter:
     def initialize(self) -> bool:
         """Initialize the system."""
         try:
+
+
+
+
             # Create Tello device
             self.tello = TelloFactory.create_tello()
             if not self.tello.connect():
