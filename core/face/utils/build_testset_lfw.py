@@ -158,7 +158,7 @@ def cleanup_directories(directories):
 def extract_lfw_dataset(base_dir):
     """Extract LFW dataset if not already present."""
     lfw_zip = base_dir / 'lfw.zip'
-    lfw_dir = base_dir / 'lfw'
+    lfw_dir = base_dir
     
     # If LFW directory doesn't exist or is empty
     if not lfw_dir.exists() or not any(lfw_dir.iterdir()):
@@ -284,6 +284,7 @@ def setup_dataset(num_positive_samples=5, num_negative_samples=5,
     people_csv = input_dir / 'people.csv'
     
     # Create and clean output directories
+    output_dir =  Path(output_dir)
     target_dir = output_dir / "target"
     positive_dir = output_dir / "positive_samples"
     negative_dir = output_dir / "negative_samples"

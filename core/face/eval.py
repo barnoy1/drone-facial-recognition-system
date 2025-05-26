@@ -365,12 +365,9 @@ def main():
                 name: {'encoding': embedding, 'landmarks': None}
                 for name, embedding in reference_features.items()
             }
-    except FileNotFoundError:
+    except Exception as e:
         logger.info("No existing features found. Creating new reference features...")
-        name, features = create_stable_features(reference_dir)
-        save_features(name, features, embeddings_file.parent)
-        reference_features = np.load(embeddings_file, allow_pickle=True).item()
-        logger.info(f"Created and loaded features for: {list(reference_features.keys())}")
+        exit(1)
         
     # Get input and reference directories
     input_dir = Path(args.input)
