@@ -1,0 +1,15 @@
+tello:
+  mock_enabled: true
+  mock_source: "webcam"
+  mock_folder_path: ""
+  debug_mode: true
+  debug_output_path: "debug_frames"
+pipeline:
+  scan:
+    scan_interval: 1.0
+    area_coverage: 360
+  identify:
+    confidence_threshold: 0.85
+  track:
+    update_rate: 0.1
+    max_distance: 200

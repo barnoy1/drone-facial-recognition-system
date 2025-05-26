@@ -1,11 +1,9 @@
-import os
 import cv2
 import numpy as np
-from pathlib import Path
 import sys
 from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent.parent))
-from core.face.utils.face_utils import extract_features, get_person_features
+from app.core.face.utils.face_utils import get_person_features
 
 def create_stable_features(positive_samples_dir):
     """

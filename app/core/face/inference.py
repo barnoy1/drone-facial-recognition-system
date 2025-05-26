@@ -6,9 +6,9 @@ import argparse
 import logging
 import warnings
 from pathlib import Path
-from core.face.utils.create_embedding import create_stable_features, save_features
-from core.face.utils.face_utils import process_image
-from core.face.utils.visualization import draw_results
+from app.core.face.utils.create_embedding import create_stable_features, save_features
+from app.core.face.utils.face_utils import process_image
+from app.core.face.utils.visualization import draw_results
 
 # Configure logging and suppress warnings
 logging.getLogger('tensorflow').setLevel(logging.ERROR)

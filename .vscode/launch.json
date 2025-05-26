@@ -64,6 +64,27 @@
             ],
             "console": "integratedTerminal",
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "Drone (Real Tello)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app/main.py",
+            "args": ["--config", "app/settings/config_real.yaml"]
+        },
+        {
+            "name": "Drone (Webcam Mock)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app/main.py",
+            "args": ["--config", "app/settings/config_webcam.yaml"]
+        },
+        {
+            "name": "Drone (Folder Mock)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/app/main.py",
+            "args": ["--config", "app/settings/config_folder.yaml"]
         }
     ]
 }
