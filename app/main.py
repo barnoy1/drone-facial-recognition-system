@@ -15,10 +15,7 @@ def main():
     args = parser.parse_args()
     
     try:
-        # Initialize configuration
-        # Initialize ConfigManager singleton
-        config_manager = ConfigManager.instance()
-        config_manager.initialize(args.config)
+
 
         # Create Qt application
         app = QApplication(sys.argv)
@@ -26,7 +23,7 @@ def main():
         # Create MVP components
         model = DroneModel()
         view = DroneView()
-        presenter = DronePresenter(model, view)
+        presenter = DronePresenter(args, model, view)
         
         # Initialize system
         if not presenter.initialize():

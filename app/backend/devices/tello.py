@@ -9,7 +9,10 @@ from app.backend import ConfigManager
 
 class TelloDevice(ABC):
     """Abstract base class for Tello device implementations."""
-    
+
+    def __init__(self):
+        self.is_connected = False
+
     @abstractmethod
     def connect(self) -> bool:
         pass
@@ -48,7 +51,11 @@ class WebcamMockTello(TelloDevice):
         self._frame_size = (960, 720)  # Match Tello camera resolution
     
     def connect(self) -> bool:
-        """Try to connect to webcam with retries and device scanning."""
+        if self.is_connected:
+            print('Already connected to webcam')
+            return True
+
+        print("Attempting to connect to webcam...")
         for attempt in range(self.MAX_RETRIES):
             try:
                 # Try multiple devices
@@ -271,7 +278,7 @@ class TelloFactory:
     
     @staticmethod
     def create_tello() -> TelloDevice:
-        config = ConfigManager.instance()
+        config = ConfigManager
 
         try:
             # Wait for config to be loaded

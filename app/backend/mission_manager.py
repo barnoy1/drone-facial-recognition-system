@@ -34,7 +34,7 @@ class MissionManager:
         try:
             # Create Tello device
             self.tello = TelloFactory.create_tello()
-            if not self.tello.connect():
+            if not self.tello.is_connected:
                 raise RuntimeError("Failed to connect to Tello device")
                 
             # Create and configure pipeline

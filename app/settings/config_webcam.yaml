@@ -3,7 +3,7 @@ tello:
   mock_source: "webcam"
   mock_folder_path: ""
   debug_mode: true
-  debug_output_path: "debug_frames"
+  debug_output_path: "/home/ron/repo/projects/drone-facial-recognition-system/out/debug_frames"
 pipeline:
   scan:
     scan_interval: 1.0

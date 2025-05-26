@@ -10,7 +10,11 @@ from app.frontend.view.drone_view import DroneView
 
 
 class DronePresenter:
-    def __init__(self, model: DroneModel, view: DroneView):
+    def __init__(self, args, model: DroneModel, view: DroneView):
+
+        # Initialize configuration
+        ConfigManager.initialize(args.config)
+
         self.model = model
         self.view = view
         self.pipeline: Optional[Pipeline] = None
@@ -29,12 +33,9 @@ class DronePresenter:
         """Initialize the system."""
         try:
 
-
-
-
             # Create Tello device
             self.tello = TelloFactory.create_tello()
-            if not self.tello.connect():
+            if not self.tello.is_connected:
                 self.view.log_message("Failed to connect to Tello device")
                 return False
                 
