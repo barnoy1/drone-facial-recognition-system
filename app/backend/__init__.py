@@ -19,6 +19,7 @@ __all__ = [
     'MissionManager',
     'Pipeline',
     'PipelineState',
+    'IdleNode',
     'LaunchNode',
     'ScanNode',
     'IdentifyNode',

@@ -8,6 +8,22 @@ from app.core.face.inference import process_image  # Import face detection funct
 
 # We'll use this from the existing core module
 
+class IdleNode(PipelineNode):
+    def __init__(self, tello: TelloDevice):
+        self.tello = tello
+
+    def process(self, frame: np.ndarray, context: Dict[str, Any]) -> bool:
+        if not context.get('launched', False):
+            success = self.tello.takeoff()
+            context['launched'] = success
+            return success
+        return True
+
+    def reset(self) -> None:
+        pass
+
+
+
 class LaunchNode(PipelineNode):
     def __init__(self, tello: TelloDevice):
         self.tello = tello
