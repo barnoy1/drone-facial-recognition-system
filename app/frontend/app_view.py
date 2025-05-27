@@ -10,7 +10,7 @@ from typing import List, Optional
 from app.backend.pipeline.pipeline import PipelineState
 
 
-class DroneView(QMainWindow):
+class AppView(QMainWindow):
     # Signals
     start_mission = Signal()
     emergency_stop = Signal()

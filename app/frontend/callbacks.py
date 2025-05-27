@@ -51,16 +51,7 @@ class DroneModel:
     def update_mission_time(self, time: float) -> None:
         """Update mission time."""
         self.status.mission_time = time
-        
-    def register_state_callback(self, callback: Callable[[PipelineState], None]) -> None:
-        self._state_changed_callbacks.append(callback)
-        
-    def register_frame_callback(self, callback: Callable[[np.ndarray], None]) -> None:
-        self._frame_updated_callbacks.append(callback)
-        
-    def register_error_callback(self, callback: Callable[[str], None]) -> None:
-        self._error_callbacks.append(callback)
-        
+
     @property
     def current_frame(self) -> Optional[np.ndarray]:
         return self._frame

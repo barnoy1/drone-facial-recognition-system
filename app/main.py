@@ -2,10 +2,11 @@ import sys
 import argparse
 from PySide6.QtWidgets import QApplication
 
-from frontend.model.drone_model import DroneModel
-from frontend.view.drone_view import DroneView
-from frontend.presenter.drone_presenter import DronePresenter
-from backend.config.config_manager import ConfigManager
+from app.backend import MissionManager
+from app.frontend.callbacks import DroneModel
+from app.frontend.app_view import AppView
+from app.frontend.presenter import Presenter
+
 
 def main():
     # Parse command line arguments
@@ -21,9 +22,9 @@ def main():
         app = QApplication(sys.argv)
         
         # Create MVP components
-        model = DroneModel()
-        view = DroneView()
-        presenter = DronePresenter(args, model, view)
+
+        view = AppView()
+        presenter = Presenter(args, view)
         
         # Initialize system
         if not presenter.initialize():

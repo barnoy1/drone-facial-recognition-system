@@ -1,54 +1,61 @@
-from typing import Optional
+from typing import Optional, Callable, List
 import numpy as np
 
-from app.backend import ConfigManager
+from app.backend import ConfigManager, MissionManager
+from app.backend.camera_manager import logger
 from app.backend.devices.tello import TelloFactory
+from app.backend.mission_manager import MissionState
 from app.backend.pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
 from app.backend.pipeline.pipeline import Pipeline, PipelineState
-from app.frontend.model.drone_model import DroneModel
-from app.frontend.view.drone_view import DroneView
+from app.frontend.callbacks import DroneModel
+from app.frontend.app_view import AppView
 
 
-class DronePresenter:
-    def __init__(self, args, model: DroneModel, view: DroneView):
+class Presenter:
+    def __init__(self, args, view: AppView):
 
-        # Initialize configuration
-        ConfigManager.initialize(args.config)
+        self.mission_manager = MissionManager(args)
 
-        self.model = model
         self.view = view
         self.pipeline: Optional[Pipeline] = None
-        self.tello = None
+
+        self._state_changed_callbacks: List[Callable[[PipelineState], None]] = []
+        self._frame_updated_callbacks: List[Callable[[np.ndarray], None]] = []
+        self._error_callbacks: List[Callable[[str], None]] = []
 
         # Connect view signals
         self.view.start_mission.connect(self.start_mission)
         self.view.emergency_stop.connect(self.emergency_stop)
-        
+
         # Connect model callbacks
-        self.model.register_state_callback(self._on_state_changed)
-        self.model.register_frame_callback(self._on_frame_updated)
-        self.model.register_error_callback(self._on_error)
-        
+        self.register_state_callback(self._on_state_changed)
+        self.register_frame_callback(self._on_frame_updated)
+        self.register_error_callback(self._on_error)
+
+
+    def register_state_callback(self, callback: Callable[[PipelineState], None]) -> None:
+        """Register callback for state updates."""
+        self._state_changed_callbacks.append(callback)
+        logger.debug(f"State callback registered. Total callbacks: {len(self._state_changed_callbacks)}")
+
+    def register_frame_callback(self, callback: Callable[[np.ndarray], None]) -> None:
+        """Register callback for state updates."""
+        self._frame_updated_callbacks.append(callback)
+        logger.debug(f"State callback registered. Total callbacks: {len(self._frame_updated_callbacks)}")
+
+    def register_error_callback(self, callback: Callable[[str], None]) -> None:
+        self._error_callbacks.append(callback)
+        logger.debug(f"Error callback registered. Total callbacks: {len(self._error_callbacks)}")
+
     def initialize(self) -> bool:
         """Initialize the system."""
         try:
 
             # Create Tello device
-            self.tello = TelloFactory.create_tello()
-            if not self.tello.is_connected:
+            if not self.mission_manager.tello.is_connected:
                 self.view.log_message("Failed to connect to Tello device")
                 return False
-                
-            # Initialize pipeline
-            self.pipeline = Pipeline()
-            
-            # Register pipeline nodes
-            self.pipeline.register_node(PipelineState.LAUNCH, LaunchNode(self.tello))
-            self.pipeline.register_node(PipelineState.SCAN, ScanNode())
-            self.pipeline.register_node(PipelineState.IDENTIFY, IdentifyNode())
-            self.pipeline.register_node(PipelineState.TRACK, TrackNode())
-            self.pipeline.register_node(PipelineState.RETURN, ReturnNode(self.tello))
-            
+
             self.view.log_message("System initialized successfully")
             return True
             
@@ -61,11 +68,9 @@ class DronePresenter:
         if not self.pipeline:
             self.view.log_message("System not initialized")
             return
-            
-        self.model.status.is_running = True
         self.view.set_mission_running(True)
         self.view.log_message("Mission started")
-        self._update_pipeline_state(PipelineState.LAUNCH)
+
         
     def emergency_stop(self) -> None:
         """Execute emergency stop."""
@@ -93,7 +98,7 @@ class DronePresenter:
         
     def _update_pipeline_state(self, state: PipelineState) -> None:
         """Update pipeline state in model and view."""
-        self.model.update_state(state)
+        self.mission_manager.update_state(state)
         self.view.update_pipeline_state(state)
         
     def _on_state_changed(self, state: PipelineState) -> None:
