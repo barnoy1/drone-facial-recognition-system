@@ -15,38 +15,19 @@ from app.frontend.app_view import AppView
 class Presenter:
     def __init__(self, args, view: AppView):
 
-        self.mission_manager = MissionManager(args)
+        self.mission_manager = MissionManager(args=args,
+                                              cb_on_state_changed=self._on_state_changed,
+                                              cb_on_frame_updated=self._on_frame_updated,
+                                              cb_on_error=self._on_error)
 
         self.view = view
         self.pipeline: Optional[Pipeline] = None
-
-        self._state_changed_callbacks: List[Callable[[PipelineStage], None]] = []
-        self._frame_updated_callbacks: List[Callable[[np.ndarray], None]] = []
-        self._error_callbacks: List[Callable[[str], None]] = []
 
         # Connect view signals
         self.view.start_mission.connect(self.start_mission)
         self.view.emergency_stop.connect(self.emergency_stop)
 
-        # Connect model callbacks
-        self.register_state_callback(self._on_state_changed)
-        self.register_frame_callback(self._on_frame_updated)
-        self.register_error_callback(self._on_error)
 
-
-    def register_state_callback(self, callback: Callable[[PipelineStage], None]) -> None:
-        """Register callback for state updates."""
-        self._state_changed_callbacks.append(callback)
-        logger.debug(f"State callback registered. Total callbacks: {len(self._state_changed_callbacks)}")
-
-    def register_frame_callback(self, callback: Callable[[np.ndarray], None]) -> None:
-        """Register callback for state updates."""
-        self._frame_updated_callbacks.append(callback)
-        logger.debug(f"State callback registered. Total callbacks: {len(self._frame_updated_callbacks)}")
-
-    def register_error_callback(self, callback: Callable[[str], None]) -> None:
-        self._error_callbacks.append(callback)
-        logger.debug(f"Error callback registered. Total callbacks: {len(self._error_callbacks)}")
 
     def initialize(self) -> bool:
         """Initialize the system."""

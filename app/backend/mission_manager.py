@@ -38,7 +38,10 @@ class MissionManager(QObject):
     mission_completed = pyqtSignal()
     telemetry_updated = pyqtSignal(object)  # DroneData
 
-    def __init__(self, args):
+    def __init__(self, args,
+                 cb_on_state_changed: PipelineStage,
+                 cb_on_frame_updated : np.ndarray,
+                 cb_on_error: str):
         super().__init__()
 
         # Core components
@@ -62,7 +65,7 @@ class MissionManager(QObject):
         self._setup_timers()
 
         # Callback registry
-        self._state_callbacks: List[Callable[[MissionState], None]] = []
+        self._state_callbacks: List[Callable[[PipelineState], None]] = []
         self._frame_updated_callbacks: List[Callable[[np.ndarray], None]] = []
         self._error_callbacks: List[Callable[[str], None]] = []
 
@@ -72,6 +75,25 @@ class MissionManager(QObject):
 
         self.initialize()
         logger.info("MissionManager initialized")
+
+
+        self.register_state_callback(cb_on_state_changed)
+        self.register_frame_callback(cb_on_frame_updated)
+        self.register_error_callback(cb_on_error)
+
+    def register_state_callback(self, callback: Callable[[PipelineStage], None]) -> None:
+        """Register callback for state updates."""
+        self._state_changed_callbacks.append(callback)
+        logger.debug(f"State callback registered. Total callbacks: {len(self._state_changed_callbacks)}")
+
+    def register_frame_callback(self, callback: Callable[[np.ndarray], None]) -> None:
+        """Register callback for state updates."""
+        self._frame_updated_callbacks.append(callback)
+        logger.debug(f"State callback registered. Total callbacks: {len(self._frame_updated_callbacks)}")
+
+    def register_error_callback(self, callback: Callable[[str], None]) -> None:
+        self._error_callbacks.append(callback)
+        logger.debug(f"Error callback registered. Total callbacks: {len(self._error_callbacks)}")
 
     def _load_mission_config(self) -> None:
         """Load mission configuration from ConfigManager."""
@@ -179,16 +201,16 @@ class MissionManager(QObject):
     def register_state_callback(self, callback: Callable[[MissionState], None]) -> None:
         """Register callback for state updates."""
         self._state_callbacks.append(callback)
-        logger.debug(f"State callback registered. Total callbacks: {len(self._state_callbacks)}")
+        logger.info(f"State callback registered. Total callbacks: {len(self._state_callbacks)}")
 
     def register_frame_callback(self, callback: Callable[[np.ndarray], None]) -> None:
         """Register callback for state updates."""
         self._frame_updated_callbacks.append(callback)
-        logger.debug(f"State callback registered. Total callbacks: {len(self._frame_updated_callbacks)}")
+        logger.info(f"State callback registered. Total callbacks: {len(self._frame_updated_callbacks)}")
 
     def register_error_callback(self, callback: Callable[[str], None]) -> None:
         self._error_callbacks.append(callback)
-        logger.debug(f"Error callback registered. Total callbacks: {len(self._error_callbacks)}")
+        logger.info(f"Error callback registered. Total callbacks: {len(self._error_callbacks)}")
 
     def _notify_state_update(self) -> None:
         """Notify all registered callbacks of state changes."""
