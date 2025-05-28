@@ -3,7 +3,6 @@ import argparse
 from PySide6.QtWidgets import QApplication
 
 from app.backend import MissionManager
-from app.frontend.callbacks import DroneModel
 from app.frontend.app_view import AppView
 from app.frontend.presenter import Presenter
 import logging

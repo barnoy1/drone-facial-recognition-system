@@ -248,10 +248,8 @@ class MissionManager(QObject):
         self.mission_state.frames_processed = 0
 
         # Start timers
-        self.mission_timer.start()
         self.stream_timer.start()
-        self.telemetry_timer.start()
-        self.fps_timer.start()
+
 
         # Initialize pipeline state
         if self.pipeline:
@@ -274,7 +272,6 @@ class MissionManager(QObject):
 
         # Stop processing timers but keep telemetry and connection monitoring
         self.stream_timer.stop()
-        self.mission_timer.stop()
 
         # Hover the drone if it's flying
         if self.tello and self.tello.is_flying:
@@ -398,7 +395,7 @@ class MissionManager(QObject):
                 if frame_interval > 0:
                     instant_fps = 1.0 / frame_interval
                     # Smooth FPS calculation
-                    self.mission_state.fps = (self.mission_state.fps * 0.9) + (instant_fps * 0.1)
+                    self.mission_state.fps = np.round((self.mission_state.fps * 0.9) + (instant_fps * 0.1),2)
             self._last_frame_time = current_time
 
             # Add overlays based on pipeline state

@@ -94,7 +94,7 @@ class CameraManager:
         # Prepare text overlays
         texts = []
         try:
-            texts.append(f"State: {mission_state.pipeline_state.name}")
+            texts.append(f"State: {mission_state.pipeline_current_node.name}")
         except AttributeError as e:
             print(f"Error accessing pipeline_state.name: {e}")
             texts.append("State: Unknown")

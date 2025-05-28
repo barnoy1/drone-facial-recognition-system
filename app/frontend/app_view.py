@@ -18,7 +18,7 @@ class AppView(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Drone Mission Control")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 800, 800)
         self._init_ui()
         
     def _init_ui(self):

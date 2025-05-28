@@ -6,7 +6,6 @@ This package implements the Model-View-Presenter pattern:
 - Presenter: Coordinates between Model and View
 """
 
-from app.frontend.callbacks import DroneModel
 from app.frontend.app_view import AppView
 from app.frontend.presenter import Presenter
 

@@ -9,7 +9,7 @@ from app.backend.devices.tello import TelloFactory
 from app.backend.mission_manager import MissionState
 from app.backend.pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
 from app.backend.pipeline.pipeline import Pipeline, PipelineStage
-from app.frontend.callbacks import DroneModel
+
 from app.frontend.app_view import AppView
 
 
