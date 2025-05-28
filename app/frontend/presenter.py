@@ -3,6 +3,7 @@ import numpy as np
 
 from app import logger
 from app.backend import ConfigManager, MissionManager
+from app.backend.container import PipelineState
 
 from app.backend.devices.tello import TelloFactory
 from app.backend.mission_manager import MissionState
@@ -85,11 +86,11 @@ class Presenter:
         
     def _on_state_changed(self, state: PipelineStage) -> None:
         """Handle state changes."""
-        if state == PipelineStage.COMPLETE:
+        if state == PipelineStage.END_MISSION:
             self.model.status.is_running = False
             self.view.set_mission_running(False)
             self.view.log_message("Mission completed successfully")
-        elif state == PipelineStage.ERROR:
+        elif state == PipelineState.ERROR:
             self.emergency_stop()
             
     def _on_frame_updated(self, frame: np.ndarray) -> None:

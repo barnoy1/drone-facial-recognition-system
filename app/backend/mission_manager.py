@@ -38,10 +38,10 @@ class MissionManager(QObject):
     mission_completed = pyqtSignal()
     telemetry_updated = pyqtSignal(object)  # DroneData
 
-    def __init__(self, args,
+    def __init__(self, args: object,
                  cb_on_state_changed: PipelineStage,
-                 cb_on_frame_updated : np.ndarray,
-                 cb_on_error: str):
+                 cb_on_frame_updated: np.ndarray,
+                 cb_on_error: str) -> object:
         super().__init__()
 
         # Core components
@@ -76,7 +76,6 @@ class MissionManager(QObject):
         self.initialize()
         logger.info("MissionManager initialized")
 
-
         self.register_state_callback(cb_on_state_changed)
         self.register_frame_callback(cb_on_frame_updated)
         self.register_error_callback(cb_on_error)
@@ -109,11 +108,6 @@ class MissionManager(QObject):
 
     def _setup_timers(self) -> None:
         """Set up mission timers."""
-        # Mission time update timer
-        self.mission_timer = QTimer(self)
-        self.mission_timer.timeout.connect(self._update_mission_time)
-        self.mission_timer.setInterval(1000)  # 1 second
-        self.mission_timer.start()
 
         # Frame processing timer
         self.stream_timer = QTimer(self)
@@ -121,23 +115,12 @@ class MissionManager(QObject):
         self.stream_timer.setInterval(int(1000 / self.frame_rate))  # Based on configured FPS
         self.stream_timer.start()
 
-        # Telemetry update timer
-        self.telemetry_timer = QTimer(self)
-        self.telemetry_timer.timeout.connect(self._update_telemetry)
-        self.telemetry_timer.setInterval(int(self.telemetry_interval * 1000))
-        self.telemetry_timer.start()
-
         # Connection monitoring timer
         self.connection_timer = QTimer(self)
         self.connection_timer.timeout.connect(self._check_connection)
         self.connection_timer.setInterval(2000)  # 2 seconds
         self.connection_timer.start()
 
-        # FPS calculation timer
-        self.fps_timer = QTimer(self)
-        self.fps_timer.timeout.connect(self._calculate_fps)
-        self.fps_timer.setInterval(int(self._fps_update_interval * 1000))
-        self.fps_timer.start()
 
     def initialize(self) -> bool:
         """Initialize mission manager components."""
@@ -222,6 +205,22 @@ class MissionManager(QObject):
             for callback in self._state_callbacks:
                 try:
                     callback(self.mission_state)
+                except Exception as e:
+                    logger.error(f"Error in state callback: {str(e)}")
+
+        except Exception as e:
+            logger.error(f"Error notifying state update: {str(e)}")
+
+    def _notify_frame_update(self) -> None:
+        """Notify all registered callbacks of state changes."""
+        try:
+            # Emit Qt signal
+            # self.state_changed.emit(self.mission_state)
+
+            # Call registered callbacks
+            for callback in self._frame_updated_callbacks:
+                try:
+                    callback(np.array(self.mission_state.frame_data.display_frame))
                 except Exception as e:
                     logger.error(f"Error in state callback: {str(e)}")
 
@@ -406,16 +405,18 @@ class MissionManager(QObject):
             self.camera_manager.add_overlay(self.mission_state)
 
             # Update mission state with pipeline state
-            self.mission_state.pipeline_state = self.pipeline.state
+            self.mission_state.pipeline_current_node = self.pipeline.current_node
+
+            if self.mission_state.pipeline_current_node.state == PipelineState.COMPLETE:
+                self._notify_state_update()
 
             # Handle pipeline completion or errors
-            if self.pipeline.state == PipelineStage.COMPLETE:
+            if self.pipeline.state == PipelineStage.END_MISSION:
                 logger.info("Pipeline completed successfully")
                 self.stop_mission()
-            elif self.pipeline.state == PipelineState.ERROR:
-                self._handle_error("Unknown pipeline error")
 
-            self._notify_state_update()
+            self._notify_frame_update()
+
 
         except Exception as e:
             self._handle_error(f"Frame processing error: {str(e)}")
@@ -461,9 +462,7 @@ class MissionManager(QObject):
             else:
                 self.mission_state.battery_critical = False
 
-            # Emit telemetry update signal
-            # self.telemetry_updated.emit(self.mission_state.drone_data)
-            self._notify_state_update()
+
 
         except Exception as e:
             logger.error(f"Telemetry update failed: {str(e)}")
@@ -516,8 +515,6 @@ class MissionManager(QObject):
             logger.warning(f"Mission time limit reached ({self.mission_time_limit}s)")
             self.stop_mission()
             return
-
-        self._notify_state_update()
 
     def _calculate_fps(self) -> None:
         """Calculate and log FPS statistics."""

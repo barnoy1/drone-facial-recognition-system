@@ -27,13 +27,14 @@ class PipelineNode(ABC):
         pass
 
     def is_done(self) -> bool:
-        return self.state in (PipelineStage.COMPLETE, PipelineState.ERROR)
+        return self.state in (PipelineStage.END_MISSION, PipelineState.ERROR)
 
 class Pipeline:
     """Main pipeline manager."""
     
     def __init__(self):
         self.nodes: Dict[PipelineStage, PipelineNode] = {}
+        self.current_node = None
         self.current_state = PipelineStage.IDLE
         self.context: Dict[str, Any] = {}
         self.state_transitions = {
@@ -42,7 +43,7 @@ class Pipeline:
             PipelineStage.SCAN: PipelineStage.IDENTIFY,
             PipelineStage.IDENTIFY: PipelineStage.TRACK,
             PipelineStage.TRACK: PipelineStage.RETURN,
-            PipelineStage.RETURN: PipelineStage.COMPLETE,
+            PipelineStage.RETURN: PipelineStage.END_MISSION,
         }
     
     def register_node(self, state: PipelineStage, node: PipelineNode) -> None:
@@ -52,14 +53,14 @@ class Pipeline:
     def process_frame(self, mission_state: MissionState) -> Optional[str]:
         """Process a frame through the current pipeline node."""
 
-        current_node = self.nodes.get(self.current_state)
-        if not current_node:
+        self.current_node = self.nodes.get(self.current_state)
+        if not self.current_node:
             self.current_state = PipelineState.ERROR
             return f"No node registered for state: {self.current_state}"
 
         try:
-            current_node.process(mission_state, self.context)
-            if current_node.is_done():
+            self.current_node.process(mission_state, self.context)
+            if self.current_node.is_done():
                 # Node is complete, transition to next state
                 next_state = self.state_transitions.get(self.current_state)
                 if next_state:
