@@ -1,9 +1,12 @@
 import numpy as np
 from typing import Dict, Any
 
+from ..container import MissionStatus
 from ..devices.tello import TelloDevice
-from .pipeline import PipelineNode
+from .pipeline import PipelineNode, PipelineState, PipelineStage
 from app.core.face.inference import process_image  # Import face detection function
+from ..mission_manager import MissionState
+from ... import logger
 
 
 # We'll use this from the existing core module
@@ -11,7 +14,7 @@ from app.core.face.inference import process_image  # Import face detection funct
 class IdleNode(PipelineNode):
     def __init__(self, tello: TelloDevice):
         self.tello = tello
-
+        self.state = PipelineState.PENDING
     def process(self, frame: np.ndarray, context: Dict[str, Any]) -> bool:
         if not context.get('launched', False):
             success = self.tello.takeoff()
@@ -23,10 +26,34 @@ class IdleNode(PipelineNode):
         pass
 
 
+class IdleNode(PipelineNode):
+    def __init__(self, tello: TelloDevice):
+        super().__init__(tello)
+
+    def process(self, mission_state: MissionState, context: Dict[str, Any]) -> bool:
+        try:
+
+            if not self.is_done():
+                if self.tello.is_connected and mission_state.frame_data is not None:
+                    if MissionStatus.READY:
+                        self.state = PipelineState.IN_PROGRESS
+                    elif MissionStatus.RUNNING:
+                        self.state = PipelineState.COMPLETE
+                    else:
+                        self.state = PipelineState.ERROR
+                else:
+                    self.state = PipelineState.ERROR
+                    return False
+        except Exception as e:
+            logger.error(f'an error has occurred in node [IDLE]:\n{e}')
+            raise
+
+    def reset(self) -> None:
+        pass
 
 class LaunchNode(PipelineNode):
     def __init__(self, tello: TelloDevice):
-        self.tello = tello
+        super().__init__(tello)
         
     def process(self, frame: np.ndarray, context: Dict[str, Any]) -> bool:
         if not context.get('launched', False):

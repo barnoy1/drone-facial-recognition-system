@@ -3,12 +3,12 @@ from typing import Optional, Callable, List
 import numpy as np
 
 from app.backend.config.config_manager import ConfigManager
-from app.backend.pipeline.pipeline import PipelineState
+from app.backend.pipeline.pipeline import PipelineStage
 
 
 @dataclass
 class MissionStatus:
-    current_state: PipelineState = PipelineState.IDLE
+    current_state: PipelineStage = PipelineStage.IDLE
     is_running: bool = False
     error_message: Optional[str] = None
     mission_time: float = 0.0
@@ -17,11 +17,11 @@ class DroneModel:
     def __init__(self):
         self.status = MissionStatus()
         self._frame: Optional[np.ndarray] = None
-        self._state_changed_callbacks: List[Callable[[PipelineState], None]] = []
+        self._state_changed_callbacks: List[Callable[[PipelineStage], None]] = []
         self._frame_updated_callbacks: List[Callable[[np.ndarray], None]] = []
         self._error_callbacks: List[Callable[[str], None]] = []
         
-    def update_state(self, new_state: PipelineState) -> None:
+    def update_state(self, new_state: PipelineStage) -> None:
         """Update mission state and notify observers."""
         self.status.current_state = new_state
         for callback in self._state_changed_callbacks:

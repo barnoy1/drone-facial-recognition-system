@@ -7,7 +7,7 @@ from app.backend import ConfigManager, MissionManager
 from app.backend.devices.tello import TelloFactory
 from app.backend.mission_manager import MissionState
 from app.backend.pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
-from app.backend.pipeline.pipeline import Pipeline, PipelineState
+from app.backend.pipeline.pipeline import Pipeline, PipelineStage
 from app.frontend.callbacks import DroneModel
 from app.frontend.app_view import AppView
 
@@ -20,7 +20,7 @@ class Presenter:
         self.view = view
         self.pipeline: Optional[Pipeline] = None
 
-        self._state_changed_callbacks: List[Callable[[PipelineState], None]] = []
+        self._state_changed_callbacks: List[Callable[[PipelineStage], None]] = []
         self._frame_updated_callbacks: List[Callable[[np.ndarray], None]] = []
         self._error_callbacks: List[Callable[[str], None]] = []
 
@@ -34,7 +34,7 @@ class Presenter:
         self.register_error_callback(self._on_error)
 
 
-    def register_state_callback(self, callback: Callable[[PipelineState], None]) -> None:
+    def register_state_callback(self, callback: Callable[[PipelineStage], None]) -> None:
         """Register callback for state updates."""
         self._state_changed_callbacks.append(callback)
         logger.debug(f"State callback registered. Total callbacks: {len(self._state_changed_callbacks)}")
@@ -97,18 +97,18 @@ class Presenter:
         # Update state
         self._update_pipeline_state(self.pipeline.state)
         
-    def _update_pipeline_state(self, state: PipelineState) -> None:
+    def _update_pipeline_state(self, state: PipelineStage) -> None:
         """Update pipeline state in model and view."""
         self.mission_manager.update_state(state)
         self.view.update_pipeline_state(state)
         
-    def _on_state_changed(self, state: PipelineState) -> None:
+    def _on_state_changed(self, state: PipelineStage) -> None:
         """Handle state changes."""
-        if state == PipelineState.COMPLETE:
+        if state == PipelineStage.COMPLETE:
             self.model.status.is_running = False
             self.view.set_mission_running(False)
             self.view.log_message("Mission completed successfully")
-        elif state == PipelineState.ERROR:
+        elif state == PipelineStage.ERROR:
             self.emergency_stop()
             
     def _on_frame_updated(self, frame: np.ndarray) -> None:

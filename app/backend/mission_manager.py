@@ -1,3 +1,4 @@
+import copy
 import logging
 import time
 from dataclasses import dataclass, field
@@ -9,58 +10,13 @@ from typing import Callable, Dict, Any, Optional, List
 import numpy as np
 
 from .camera_manager import FrameData, CameraManager
-from .pipeline.pipeline import Pipeline, PipelineState
+from .container import MissionState, MissionStatus, DroneData, PipelineState
+from .navigation_manager import NavigationManager
+from .pipeline.pipeline import Pipeline, PipelineStage
 from .devices.tello import TelloFactory, TelloDevice
-from .pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
+from .pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode, IdleNode
 from .config.config_manager import ConfigManager
 from .. import logger
-
-
-class MissionStatus(Enum):
-    """Mission status enumeration."""
-    NOT_INITIALIZED = "not_initialized"
-    READY = "ready"
-    RUNNING = "running"
-    PAUSED = "paused"
-    COMPLETED = "completed"
-    ERROR = "error"
-    EMERGENCY_STOPPED = "emergency_stopped"
-
-
-@dataclass
-class DroneData:
-    """Data retrieved from drone device."""
-    frame: Optional[np.ndarray] = None
-    height: float = 0.0
-    battery: int = 0
-    temperature: float = 0.0
-    flight_time: float = 0.0
-    speed_x: float = 0.0
-    speed_y: float = 0.0
-    speed_z: float = 0.0
-    acceleration_x: float = 0.0
-    acceleration_y: float = 0.0
-    acceleration_z: float = 0.0
-
-
-@dataclass
-class MissionState:
-    """Current state of the mission."""
-    status: MissionStatus = MissionStatus.NOT_INITIALIZED
-    pipeline_state: PipelineState = PipelineState.IDLE
-    drone_data: Optional[DroneData] = None
-    detected_faces: List[Dict[str, Any]] = field(default_factory=list)
-    mission_time: float = 0.0
-    error: Optional[str] = None
-    is_running: bool = False
-    is_paused: bool = False
-    frame_data: Optional[FrameData] = None
-    battery_critical: bool = False
-    connection_lost: bool = False
-    initialization_complete: bool = False
-    last_telemetry_update: float = 0.0
-    frames_processed: int = 0
-    fps: float = 0.0
 
 
 class MissionManager(QObject):
@@ -76,10 +32,11 @@ class MissionManager(QObject):
     """
 
     # Qt signals for thread-safe communication
-    # state_changed = pyqtSignal(object)  # MissionState
-    # error_occurred = pyqtSignal(str)
-    # mission_completed = pyqtSignal()
-    # telemetry_updated = pyqtSignal(object)  # DroneData
+    from PyQt6.QtCore import pyqtSignal
+    state_changed = pyqtSignal(object)  # MissionState
+    error_occurred = pyqtSignal(str)
+    mission_completed = pyqtSignal()
+    telemetry_updated = pyqtSignal(object)  # DroneData
 
     def __init__(self, args):
         super().__init__()
@@ -90,6 +47,7 @@ class MissionManager(QObject):
         self.tello: Optional[TelloDevice] = None
         self.pipeline: Optional[Pipeline] = None
         self.camera_manager: Optional[CameraManager] = None
+        self.nav_manager: Optional[NavigationManager] = None
         self.mission_state = MissionState()
 
         # Mission configuration
@@ -115,7 +73,6 @@ class MissionManager(QObject):
         self.initialize()
         logger.info("MissionManager initialized")
 
-
     def _load_mission_config(self) -> None:
         """Load mission configuration from ConfigManager."""
         config = ConfigManager().config
@@ -127,7 +84,6 @@ class MissionManager(QObject):
         self.battery_critical_threshold = mission_config.get('battery_critical', 10)
         self.battery_emergency_threshold = mission_config.get('battery_emergency', 5)
         self.connection_timeout = mission_config.get('connection_timeout', 5.0)
-
 
     def _setup_timers(self) -> None:
         """Set up mission timers."""
@@ -180,6 +136,7 @@ class MissionManager(QObject):
             # Initialize camera manager
             logger.info("Initializing camera manager...")
             self.camera_manager = CameraManager(self.tello)
+            self.nav_manager = NavigationManager(self.tello)
             logger.info("Camera manager initialized")
 
             # Create and configure pipeline
@@ -210,12 +167,12 @@ class MissionManager(QObject):
             raise RuntimeError("Pipeline or Tello device not available")
 
         # Register pipeline nodes
-        self.pipeline.register_node(PipelineState.IDLE, LaunchNode(self.tello))
-        self.pipeline.register_node(PipelineState.LAUNCH, LaunchNode(self.tello))
-        self.pipeline.register_node(PipelineState.SCAN, ScanNode())
-        self.pipeline.register_node(PipelineState.IDENTIFY, IdentifyNode())
-        self.pipeline.register_node(PipelineState.TRACK, TrackNode())
-        self.pipeline.register_node(PipelineState.RETURN, ReturnNode(self.tello))
+        self.pipeline.register_node(PipelineStage.IDLE, IdleNode(self.tello))
+        self.pipeline.register_node(PipelineStage.LAUNCH, LaunchNode(self.tello))
+        self.pipeline.register_node(PipelineStage.SCAN, ScanNode())
+        self.pipeline.register_node(PipelineStage.IDENTIFY, IdentifyNode())
+        self.pipeline.register_node(PipelineStage.TRACK, TrackNode())
+        self.pipeline.register_node(PipelineStage.RETURN, ReturnNode(self.tello))
 
         logger.info("Pipeline nodes registered successfully")
 
@@ -277,7 +234,7 @@ class MissionManager(QObject):
 
         # Initialize pipeline state
         if self.pipeline:
-            self.mission_state.pipeline_state = PipelineState.LAUNCH
+            self.mission_state.pipeline_state = PipelineStage.LAUNCH
 
         self._notify_state_update()
         logger.info("Mission started successfully")
@@ -378,7 +335,7 @@ class MissionManager(QObject):
                 logger.error(f"Failed to execute drone emergency stop: {str(e)}")
 
         # Emit error signal
-        self.error_occurred.emit("Emergency stop executed")
+        # self.error_occurred.emit("Emergency stop executed")
         self._notify_state_update()
 
     def _stop_all_timers(self) -> None:
@@ -407,13 +364,10 @@ class MissionManager(QObject):
             self.mission_state.connection_lost = False
             self.mission_state.frame_data = frame_data
 
-            # Process frame through pipeline
-            result = self.pipeline.process_frame(frame_data.raw_frame)
-            if result:
-                self.mission_state.detected_faces = result.get('detected_faces', [])
+            self.mission_state.drone_data = self.nav_manager.get_measurements()
 
-            # Add overlays based on pipeline state
-            self._update_frame_overlays(frame_data)
+            # Process frame through pipeline
+            self.pipeline.process_frame(self.mission_state)
 
             # Update frame processing statistics
             self.mission_state.frames_processed += 1
@@ -426,44 +380,23 @@ class MissionManager(QObject):
                     self.mission_state.fps = (self.mission_state.fps * 0.9) + (instant_fps * 0.1)
             self._last_frame_time = current_time
 
+            # Add overlays based on pipeline state
+            self.camera_manager.add_overlay(self.mission_state)
+
             # Update mission state with pipeline state
             self.mission_state.pipeline_state = self.pipeline.state
 
             # Handle pipeline completion or errors
-            if self.pipeline.state == PipelineState.COMPLETE:
+            if self.pipeline.state == PipelineStage.COMPLETE:
                 logger.info("Pipeline completed successfully")
                 self.stop_mission()
             elif self.pipeline.state == PipelineState.ERROR:
-                self._handle_error(self.pipeline.error or "Unknown pipeline error")
+                self._handle_error("Unknown pipeline error")
 
             self._notify_state_update()
 
         except Exception as e:
             self._handle_error(f"Frame processing error: {str(e)}")
-
-    def _update_frame_overlays(self, frame_data: FrameData) -> None:
-        """Add overlays to the frame based on current state."""
-        if frame_data.processed_frame is None:
-            return
-
-        try:
-            # Add pipeline state overlay
-            state_text = f"State: {self.mission_state.pipeline_state.name}"
-            # Add text overlay (implementation depends on your overlay system)
-
-            # Add detected faces overlay
-            if self.mission_state.detected_faces:
-                faces_text = f"Faces: {len(self.mission_state.detected_faces)}"
-                # Add faces count overlay
-
-            # Add telemetry overlay
-            if self.mission_state.drone_data:
-                battery_text = f"Battery: {self.mission_state.drone_data.battery}%"
-                height_text = f"Height: {self.mission_state.drone_data.height:.1f}m"
-                # Add telemetry overlays
-
-        except Exception as e:
-            logger.error(f"Error adding frame overlays: {str(e)}")
 
     def _update_telemetry(self) -> None:
         """Update drone telemetry data."""
@@ -476,7 +409,6 @@ class MissionManager(QObject):
                 'height': self.tello.get_height(),
                 'battery': self.tello.get_battery(),
                 'temperature': self.tello.get_temperature(),
-                'flight_time': self.tello.get_flight_time(),
             }
 
             # Get additional telemetry if available
@@ -504,15 +436,11 @@ class MissionManager(QObject):
                 if not self.mission_state.battery_critical:
                     logger.warning(f"Battery level critical: {battery_level}%")
                     self.mission_state.battery_critical = True
-
-                if battery_level <= self.battery_emergency_threshold:
-                    self._handle_error(f"Battery level critical ({battery_level}%) - initiating emergency landing")
-                    return
             else:
                 self.mission_state.battery_critical = False
 
             # Emit telemetry update signal
-            self.telemetry_updated.emit(self.mission_state.drone_data)
+            # self.telemetry_updated.emit(self.mission_state.drone_data)
             self._notify_state_update()
 
         except Exception as e:

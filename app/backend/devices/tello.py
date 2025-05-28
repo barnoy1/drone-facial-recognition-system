@@ -4,7 +4,9 @@ import cv2
 import numpy as np
 from typing import Optional
 
+from app import logger
 from app.backend import ConfigManager
+from app.core.utilities.decorators.singleton import Singleton
 
 
 class TelloDevice(ABC):
@@ -37,19 +39,21 @@ class TelloDevice(ABC):
     def get_frame(self) -> Optional[np.ndarray]:
         pass
 
+    @abstractmethod
     def get_height(self):
         pass
 
+    @abstractmethod
     def get_battery(self):
         pass
 
+    @abstractmethod
     def get_temperature(self):
         pass
 
-    def get_flight_time(self):
-        pass
 
 
+@Singleton
 class WebcamMockTello(TelloDevice):
     """Mock Tello implementation using webcam as video source."""
 
@@ -66,10 +70,10 @@ class WebcamMockTello(TelloDevice):
 
     def connect(self) -> bool:
         if self.is_connected:
-            print('Already connected to webcam')
+            logger.info('Already connected to webcam')
             return True
 
-        print("Attempting to connect to webcam...")
+        logger.info("Attempting to connect to webcam...")
         for attempt in range(self.MAX_RETRIES):
             try:
                 # Try multiple devices
@@ -89,26 +93,26 @@ class WebcamMockTello(TelloDevice):
                                 #     self.cap.release()
                                 self._device_index = device_id
                                 self.is_connected = True
-                                print(f"Successfully connected to camera {device_id}")
+                                logger.info(f"Successfully connected to camera {device_id}")
                                 return True
                             else:
                                 self.cap.release()
                     except Exception as e:
-                        print(f"Failed to initialize camera {device_id}: {e}")
+                        logger.info(f"Failed to initialize camera {device_id}: {e}")
                         if self.cap:
                             self.cap.release()
 
                 # If no camera found in this attempt, wait before retry
                 if attempt < self.MAX_RETRIES - 1:
-                    print(f"No working camera found, retrying in {self.RETRY_DELAY}s...")
+                    logger.info(f"No working camera found, retrying in {self.RETRY_DELAY}s...")
                     time.sleep(self.RETRY_DELAY)
 
             except Exception as e:
-                print(f"Error during camera connection attempt {attempt + 1}: {e}")
+                logger.info(f"Error during camera connection attempt {attempt + 1}: {e}")
                 if attempt < self.MAX_RETRIES - 1:
                     time.sleep(self.RETRY_DELAY)
 
-        print("Failed to connect to any camera after maximum retries")
+        logger.info("Failed to connect to any camera after maximum retries")
         self.is_connected = False
         return False
 
@@ -122,21 +126,21 @@ class WebcamMockTello(TelloDevice):
             self.is_flying = False
             return True
         except Exception as e:
-            print(f"Error disconnecting from camera: {e}")
+            logger.info(f"Error disconnecting from camera: {e}")
             return False
 
     def takeoff(self) -> bool:
-        print("Mock takeoff")
+        logger.info("Mock takeoff")
         self.is_flying = True
         return True
 
     def land(self) -> bool:
-        print("Mock landing")
+        logger.info("Mock landing")
         self.is_flying = False
         return True
 
     def emergency(self) -> bool:
-        print("Mock emergency stop")
+        logger.info("Mock emergency stop")
         self.is_flying = False
         if self.cap:
             self.cap.release()
@@ -151,7 +155,7 @@ class WebcamMockTello(TelloDevice):
         try:
             ret, frame = self.cap.read()
             if not ret or frame is None:
-                print("Failed to read frame")
+                logger.info("Failed to read frame")
                 return None
 
             # Match Tello camera resolution
@@ -161,7 +165,7 @@ class WebcamMockTello(TelloDevice):
             return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         except Exception as e:
-            print(f"Error capturing frame: {e}")
+            logger.info(f"Error capturing frame: {e}")
             return None
 
     def __del__(self):
@@ -169,6 +173,17 @@ class WebcamMockTello(TelloDevice):
         self.disconnect()
 
 
+    def get_height(self):
+        return 0
+
+    def get_battery(self):
+        return 0.3
+
+    def get_temperature(self):
+        return 0
+
+
+@Singleton
 class FolderMockTello(TelloDevice):
     """Mock Tello implementation using image folder as video source."""
 
@@ -186,12 +201,12 @@ class FolderMockTello(TelloDevice):
         try:
             self.image_files = sorted(glob.glob(os.path.join(self.folder_path, "*.jpg")))
             if not self.image_files:
-                print("No images found in folder")
+                logger.info("No images found in folder")
                 return False
             self.is_connected = True
             return True
         except Exception as e:
-            print(f"Failed to connect to image folder: {e}")
+            logger.info(f"Failed to connect to image folder: {e}")
             return False
 
     def disconnect(self) -> bool:
@@ -224,8 +239,18 @@ class FolderMockTello(TelloDevice):
 
         return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
+    def get_height(self):
+        return 0
 
-class RealTello(TelloDevice):
+    def get_battery(self):
+        return 0.3
+
+    def get_temperature(self):
+        return 0
+
+
+@Singleton
+class DJITello(TelloDevice):
     """Real Tello drone implementation."""
 
     def __init__(self):
@@ -242,7 +267,7 @@ class RealTello(TelloDevice):
             self.drone.streamon()
             return True
         except Exception as e:
-            print(f"Failed to connect to Tello: {e}")
+            logger.info(f"Failed to connect to Tello: {e}")
             return False
 
     def disconnect(self) -> bool:
@@ -250,7 +275,7 @@ class RealTello(TelloDevice):
             self.drone.streamoff()
             return True
         except Exception as e:
-            print(f"Failed to disconnect from Tello: {e}")
+            logger.info(f"Failed to disconnect from Tello: {e}")
             return False
 
     def takeoff(self) -> bool:
@@ -259,7 +284,7 @@ class RealTello(TelloDevice):
             self.is_flying = True
             return True
         except Exception as e:
-            print(f"Takeoff failed: {e}")
+            logger.info(f"Takeoff failed: {e}")
             return False
 
     def land(self) -> bool:
@@ -268,7 +293,7 @@ class RealTello(TelloDevice):
             self.is_flying = False
             return True
         except Exception as e:
-            print(f"Landing failed: {e}")
+            logger.info(f"Landing failed: {e}")
             return False
 
     def emergency(self) -> bool:
@@ -277,7 +302,7 @@ class RealTello(TelloDevice):
             self.is_flying = False
             return True
         except Exception as e:
-            print(f"Emergency stop failed: {e}")
+            logger.info(f"Emergency stop failed: {e}")
             return False
 
     def get_frame(self) -> Optional[np.ndarray]:
@@ -285,8 +310,17 @@ class RealTello(TelloDevice):
             frame = self.drone.get_frame_read().frame
             return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         except Exception as e:
-            print(f"Failed to get frame: {e}")
+            logger.info(f"Failed to get frame: {e}")
             return None
+
+    def get_height(self):
+        return 0
+
+    def get_battery(self):
+        return 0.3
+
+    def get_temperature(self):
+        return 0
 
 
 class TelloFactory:
@@ -305,27 +339,27 @@ class TelloFactory:
             mock_source = config.tello_config.mock_source
             mock_folder_path = config.tello_config.mock_folder_path
 
-            print(f"Config values: mock_enabled={mock_enabled}, mock_source={mock_source}")
+            logger.info(f"Config values: mock_enabled={mock_enabled}, mock_source={mock_source}")
 
             if mock_enabled:
                 if mock_source == "webcam":
-                    print("Creating WebcamMockTello")
-                    device = WebcamMockTello()
+                    logger.info("Creating WebcamMockTello")
+                    device = WebcamMockTello.instance()
                 elif mock_source == "folder":
-                    print("Creating FolderMockTello")
-                    device = FolderMockTello(mock_folder_path)
+                    logger.info("Creating FolderMockTello")
+                    device = FolderMockTello(mock_folder_path).instance()
                 else:
                     raise ValueError(f"Unknown mock source: {mock_source}")
             else:
-                print("Creating RealTello")
-                device = RealTello()
+                logger.info("Creating RealTello")
+                device = DJITello().instance()
 
             # Test connection
-            print(f"Connecting to {device.__class__.__name__}")
+            logger.info(f"Connecting to {device.__class__.__name__}")
             if not device.connect():
                 raise RuntimeError(f"Failed to connect to {device.__class__.__name__}")
             return device
 
         except Exception as e:
-            print(f"Error creating Tello device: {str(e)}")
+            logger.info(f"Error creating Tello device: {str(e)}")
             raise
