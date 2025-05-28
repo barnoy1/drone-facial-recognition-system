@@ -6,7 +6,6 @@ import logging
 
 from .devices.tello import TelloDevice
 
-logger = logging.getLogger(__name__)
 
 @dataclass
 class FrameData:

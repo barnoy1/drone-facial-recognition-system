@@ -13,22 +13,7 @@ from .pipeline.pipeline import Pipeline, PipelineState
 from .devices.tello import TelloFactory, TelloDevice
 from .pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
 from .config.config_manager import ConfigManager
-
-# Configure colored logging
-handler = colorlog.StreamHandler()
-handler.setFormatter(colorlog.ColoredFormatter(
-    '%(log_color)s%(levelname)s:%(name)s:%(message)s',
-    log_colors={
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'red,bg_white',
-    }
-))
-logger = logging.getLogger(__name__)
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+from .. import logger
 
 
 class MissionStatus(Enum):
@@ -100,7 +85,7 @@ class MissionManager(QObject):
         super().__init__()
 
         # Core components
-        ConfigManager.initialize(args.config)
+        ConfigManager.initialize(args)
 
         self.tello: Optional[TelloDevice] = None
         self.pipeline: Optional[Pipeline] = None
@@ -143,8 +128,6 @@ class MissionManager(QObject):
         self.battery_emergency_threshold = mission_config.get('battery_emergency', 5)
         self.connection_timeout = mission_config.get('connection_timeout', 5.0)
 
-        logger.info(f"Mission config loaded: time_limit={self.mission_time_limit}s, "
-                    f"frame_rate={self.frame_rate}fps, battery_critical={self.battery_critical_threshold}%")
 
     def _setup_timers(self) -> None:
         """Set up mission timers."""
@@ -599,7 +582,7 @@ class MissionManager(QObject):
         self.mission_state.status = MissionStatus.ERROR
 
         # Emit error signal
-        self.error_occurred.emit(error)
+        # self.error_occurred.emit(error)
 
         # Execute emergency stop
         self.emergency_stop()

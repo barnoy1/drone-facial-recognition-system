@@ -1,6 +1,6 @@
 """Face recognition utilities module.
 
-This module provides common utilities for face detection, recognition, and evaluation.
+This module provides utilities utilities for face detection, recognition, and evaluation.
 """
 
 from .create_embedding import (

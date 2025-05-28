@@ -1,8 +1,9 @@
 from typing import Optional, Callable, List
 import numpy as np
 
+from app import logger
 from app.backend import ConfigManager, MissionManager
-from app.backend.camera_manager import logger
+
 from app.backend.devices.tello import TelloFactory
 from app.backend.mission_manager import MissionState
 from app.backend.pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode

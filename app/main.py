@@ -11,8 +11,10 @@ from app.frontend.presenter import Presenter
 def main():
     # Parse command line arguments
     parser = argparse.ArgumentParser(description="Drone Facial Recognition System")
-    parser.add_argument('--config', type=str, default='app/settings/config_webcam.yaml',
+    parser.add_argument('--config', type=str, default=None, required=True,
                       help='Path to configuration file')
+    parser.add_argument('--output_dir', type=str, default='./out', required=False,
+                      help='Output directory')
     args = parser.parse_args()
     
     try:
@@ -22,7 +24,6 @@ def main():
         app = QApplication(sys.argv)
         
         # Create MVP components
-
         view = AppView()
         presenter = Presenter(args, view)
         
