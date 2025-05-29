@@ -18,6 +18,7 @@ class Presenter:
         self.mission_manager = MissionManager(args=args,
                                               cb_on_state_changed=self._on_state_changed,
                                               cb_on_frame_updated=self._on_frame_updated,
+                                              cb_on_update_pipeline_state=self._update_pipeline_state,
                                               cb_on_error=self._on_error)
 
         self.view = view
@@ -47,7 +48,7 @@ class Presenter:
             
     def start_mission(self) -> None:
         """Start the drone mission."""
-        if not self.pipeline:
+        if not self.view.pipeline_nodes:
             self.view.log_message("System not initialized")
             return
         self.view.set_mission_running(True)
@@ -56,31 +57,12 @@ class Presenter:
         
     def emergency_stop(self) -> None:
         """Execute emergency stop."""
-        if self.tello:
-            self.tello.emergency()
-        self.model.status.is_running = False
         self.view.set_mission_running(False)
         self.view.log_message("EMERGENCY STOP EXECUTED")
-        
-    def process_frame(self, frame: np.ndarray) -> None:
-        """Process a new frame through the pipeline."""
-        if not self.model.status.is_running or not self.pipeline:
-            return
-            
-        # Update model with new frame
-        self.model.update_frame(frame)
-        
-        # Process frame through pipeline
-        result = self.pipeline.process_frame(frame)
-        if result:
-            self.view.log_message(result)
-            
-        # Update state
-        self._update_pipeline_state(self.pipeline.state)
+
         
     def _update_pipeline_state(self, state: PipelineNodeType) -> None:
         """Update pipeline state in model and view."""
-        self.mission_manager.update_state(state)
         self.view.update_pipeline_state(state)
         
     def _on_state_changed(self, state: PipelineNodeType) -> None:
@@ -89,7 +71,7 @@ class Presenter:
             self.model.status.is_running = False
             self.view.set_mission_running(False)
             self.view.log_message("Mission completed successfully")
-        elif state == PipelineState.ERROR:
+        elif state == PipelineState.FAILED:
             self.emergency_stop()
             
     def _on_frame_updated(self, frame: np.ndarray) -> None:

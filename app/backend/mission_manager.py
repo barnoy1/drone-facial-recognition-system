@@ -41,6 +41,7 @@ class MissionManager(QObject):
 
     def __init__(self, args: object,
                  cb_on_state_changed: PipelineNodeType,
+                 cb_on_update_pipeline_state: PipelineNodeType,
                  cb_on_frame_updated: np.ndarray,
                  cb_on_error: str) -> object:
         super().__init__()
@@ -78,6 +79,7 @@ class MissionManager(QObject):
         logger.info("MissionManager initialized")
 
         self.register_state_callback(cb_on_state_changed)
+        self.register_state_callback(cb_on_update_pipeline_state)
         self.register_frame_callback(cb_on_frame_updated)
         self.register_error_callback(cb_on_error)
 
@@ -491,6 +493,7 @@ class MissionManager(QObject):
                 self._connection_check_failures = 0
                 self.mission_state.connection_lost = False
 
+            self._notify_state_update()
         except Exception as e:
             logger.error(f"Connection check error: {str(e)}")
             self._connection_check_failures += 1
