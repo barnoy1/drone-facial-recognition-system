@@ -15,12 +15,12 @@ def present_frame(pil_image: Image.Image, save_path: str = None) -> None:
     try:
         if save_path:
             pil_image.save(save_path)
-            print(f"Image saved to {save_path}")
+            logger.error(f"Image saved to {save_path}")
         else:
             # Display the image (works in local environments with GUI support)
             pil_image.show()
     except Exception as e:
-        print(f"Error presenting image: {e}")
+        logger.error(f"Error presenting image: {e}")
 
 
 class CameraManager:
@@ -68,7 +68,7 @@ class CameraManager:
     def add_overlay(self, mission_state: MissionState) -> None:
         """Add overlays to the frame based on current state and store as PIL Image."""
         if mission_state.frame_data is None:
-            print("Error: mission_state.frame_data is None")
+            logger.error("Error: mission_state.frame_data is None")
             return
 
         # Convert frame_data to NumPy array and validate
@@ -77,7 +77,7 @@ class CameraManager:
             if frame_array.shape != (720, 960, 3) or frame_array.dtype != np.uint8:
                 raise ValueError(f"Invalid frame: shape={frame_array.shape}, dtype={frame_array.dtype}")
         except Exception as e:
-            print(f"Error converting frame_data to NumPy array: {e}")
+            logger.error(f"Error converting frame_data to NumPy array: {e}")
             return
 
         # Convert BGR (OpenCV) to RGB (PIL)
@@ -85,7 +85,7 @@ class CameraManager:
             rgb_array = cv2.cvtColor(frame_array, cv2.COLOR_BGR2RGB)
             pil_image = Image.fromarray(frame_array)
         except Exception as e:
-            print(f"Error converting to PIL Image: {e}")
+            logger.error(f"Error converting to PIL Image: {e}")
             return
 
         # Create draw object for text overlays
@@ -96,7 +96,7 @@ class CameraManager:
         try:
             texts.append(f"State: {mission_state.pipeline_current_node.name}")
         except AttributeError as e:
-            print(f"Error accessing pipeline_state.name: {e}")
+            logger.error(f"Error accessing pipeline_state.name: {e}")
             texts.append("State: Unknown")
 
         texts.append(f"FPS: {mission_state.fps}Hz")
@@ -105,14 +105,14 @@ class CameraManager:
             try:
                 texts.append(f"Faces: {len(mission_state.detected_faces)}")
             except Exception as e:
-                print(f"Error processing detected_faces: {e}")
+                logger.error(f"Error processing detected_faces: {e}")
 
         if mission_state.drone_data:
             try:
                 texts.append(f"Battery: {mission_state.drone_data.battery}%")
                 texts.append(f"Height: {mission_state.drone_data.height:.1f}m")
             except AttributeError as e:
-                print(f"Error accessing drone_data: {e}")
+                logger.error(f"Error accessing drone_data: {e}")
 
 
         # Render text overlays using HUD parameters
@@ -125,7 +125,7 @@ class CameraManager:
                     fill=self.hud.FONT_COLOR
                 )
             except Exception as e:
-                print(f"Error rendering text overlay '{text}': {e}")
+                logger.error(f"Error rendering text overlay '{text}': {e}")
 
         # Store the PIL Image with overlays
         mission_state.frame_data.display_frame = pil_image

@@ -8,7 +8,7 @@ from app.backend.container import PipelineState
 from app.backend.devices.tello import TelloFactory
 from app.backend.mission_manager import MissionState
 from app.backend.pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
-from app.backend.pipeline.pipeline import Pipeline, PipelineStage
+from app.backend.pipeline.pipeline import Pipeline, PipelineNodeType
 
 from app.frontend.app_view import AppView
 
@@ -79,14 +79,14 @@ class Presenter:
         # Update state
         self._update_pipeline_state(self.pipeline.state)
         
-    def _update_pipeline_state(self, state: PipelineStage) -> None:
+    def _update_pipeline_state(self, state: PipelineNodeType) -> None:
         """Update pipeline state in model and view."""
         self.mission_manager.update_state(state)
         self.view.update_pipeline_state(state)
         
-    def _on_state_changed(self, state: PipelineStage) -> None:
+    def _on_state_changed(self, state: PipelineNodeType) -> None:
         """Handle state changes."""
-        if state == PipelineStage.END_MISSION:
+        if state == PipelineNodeType.END_MISSION:
             self.model.status.is_running = False
             self.view.set_mission_running(False)
             self.view.log_message("Mission completed successfully")

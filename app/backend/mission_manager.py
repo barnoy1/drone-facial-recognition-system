@@ -12,9 +12,10 @@ import numpy as np
 from .camera_manager import FrameData, CameraManager
 from .container import MissionState, MissionStatus, DroneData, PipelineState
 from .navigation_manager import NavigationManager
-from .pipeline.pipeline import Pipeline, PipelineStage
+from .pipeline.idle_node import IdleNode
+from .pipeline.pipeline import Pipeline, PipelineNodeType
 from .devices.tello import TelloFactory, TelloDevice
-from .pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode, IdleNode
+from .pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
 from .config.config_manager import ConfigManager
 from .. import logger
 
@@ -39,7 +40,7 @@ class MissionManager(QObject):
     telemetry_updated = pyqtSignal(object)  # DroneData
 
     def __init__(self, args: object,
-                 cb_on_state_changed: PipelineStage,
+                 cb_on_state_changed: PipelineNodeType,
                  cb_on_frame_updated: np.ndarray,
                  cb_on_error: str) -> object:
         super().__init__()
@@ -80,7 +81,7 @@ class MissionManager(QObject):
         self.register_frame_callback(cb_on_frame_updated)
         self.register_error_callback(cb_on_error)
 
-    def register_state_callback(self, callback: Callable[[PipelineStage], None]) -> None:
+    def register_state_callback(self, callback: Callable[[PipelineNodeType], None]) -> None:
         """Register callback for state updates."""
         self._state_changed_callbacks.append(callback)
         logger.debug(f"State callback registered. Total callbacks: {len(self._state_changed_callbacks)}")
@@ -172,12 +173,12 @@ class MissionManager(QObject):
             raise RuntimeError("Pipeline or Tello device not available")
 
         # Register pipeline nodes
-        self.pipeline.register_node(PipelineStage.IDLE, IdleNode(self.tello))
-        self.pipeline.register_node(PipelineStage.LAUNCH, LaunchNode(self.tello))
-        self.pipeline.register_node(PipelineStage.SCAN, ScanNode())
-        self.pipeline.register_node(PipelineStage.IDENTIFY, IdentifyNode())
-        self.pipeline.register_node(PipelineStage.TRACK, TrackNode())
-        self.pipeline.register_node(PipelineStage.RETURN, ReturnNode(self.tello))
+        self.pipeline.register_node(PipelineNodeType.IDLE, IdleNode(self.tello))
+        self.pipeline.register_node(PipelineNodeType.LAUNCH, LaunchNode(self.tello))
+        self.pipeline.register_node(PipelineNodeType.SCAN, ScanNode())
+        self.pipeline.register_node(PipelineNodeType.IDENTIFY, IdentifyNode())
+        self.pipeline.register_node(PipelineNodeType.TRACK, TrackNode())
+        self.pipeline.register_node(PipelineNodeType.RETURN, ReturnNode(self.tello))
 
         logger.info("Pipeline nodes registered successfully")
 
@@ -253,7 +254,7 @@ class MissionManager(QObject):
 
         # Initialize pipeline state
         if self.pipeline:
-            self.mission_state.pipeline_state = PipelineStage.LAUNCH
+            self.mission_state.pipeline_state = PipelineNodeType.LAUNCH
 
         self._notify_state_update()
         logger.info("Mission started successfully")
@@ -404,11 +405,11 @@ class MissionManager(QObject):
             # Update mission state with pipeline state
             self.mission_state.pipeline_current_node = self.pipeline.current_node
 
-            if self.mission_state.pipeline_current_node.state == PipelineState.COMPLETE:
+            if self.mission_state.pipeline_current_node == PipelineState.COMPLETE:
                 self._notify_state_update()
 
             # Handle pipeline completion or errors
-            if self.pipeline.state == PipelineStage.END_MISSION:
+            if self.pipeline.current_node == PipelineNodeType.END_MISSION:
                 logger.info("Pipeline completed successfully")
                 self.stop_mission()
 

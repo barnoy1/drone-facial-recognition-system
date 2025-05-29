@@ -56,7 +56,7 @@ class PipelineState(Enum):
     ERROR = auto()
 
 
-class PipelineStage(Enum):
+class PipelineNodeType(Enum):
     IDLE = auto()
     LAUNCH = auto()
     SCAN = auto()
@@ -96,7 +96,7 @@ class DroneData:
 class MissionState:
     """Current state of the mission."""
     status: MissionStatus = MissionStatus.NOT_INITIALIZED
-    pipeline_current_node: PipelineStage = PipelineStage.IDLE
+    pipeline_current_node: PipelineNodeType = PipelineNodeType.IDLE
     drone_data: Optional[DroneData] = None
     detected_faces: List[Dict[str, Any]] = field(default_factory=list)
     mission_time: float = 0.0

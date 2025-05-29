@@ -7,7 +7,7 @@ from PySide6.QtGui import QImage, QPixmap
 import numpy as np
 from typing import List, Optional
 
-from app.backend.pipeline.pipeline import PipelineStage
+from app.backend.pipeline.pipeline import PipelineNodeType
 
 
 class AppView(QMainWindow):
@@ -37,9 +37,9 @@ class AppView(QMainWindow):
         pipeline_widget = QWidget()
         pipeline_layout = QHBoxLayout(pipeline_widget)
         self.pipeline_nodes: List[QLabel] = []
-        for state in [PipelineStage.LAUNCH, PipelineStage.SCAN,
-                      PipelineStage.IDENTIFY, PipelineStage.TRACK,
-                      PipelineStage.RETURN]:
+        for state in [PipelineNodeType.LAUNCH, PipelineNodeType.SCAN,
+                      PipelineNodeType.IDENTIFY, PipelineNodeType.TRACK,
+                      PipelineNodeType.RETURN]:
             node = QLabel(state.name)
             node.setAlignment(Qt.AlignmentFlag.AlignCenter)
             node.setStyleSheet("""
@@ -84,7 +84,7 @@ class AppView(QMainWindow):
         qimg = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
         self.stream_label.setPixmap(QPixmap.fromImage(qimg))
         
-    def update_pipeline_state(self, state: PipelineStage) -> None:
+    def update_pipeline_state(self, state: PipelineNodeType) -> None:
         """Update pipeline state visualization."""
         for node in self.pipeline_nodes:
             if node.text() == state.name:

@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any
 from enum import Enum, auto
 
 from app import logger
-from app.backend.container import PipelineStage, PipelineState
+from app.backend.container import PipelineNodeType, PipelineState
 from app.backend.devices.tello import TelloDevice
 from app.backend.mission_manager import MissionState
 
@@ -16,69 +16,63 @@ class PipelineNode(ABC):
         self.state = PipelineState.PENDING
 
     """Abstract base class for pipeline nodes."""
+
     @abstractmethod
-    def process(self, mission_state: MissionState, context: Dict[str, Any]) -> bool:
+    def process(self, mission_state: MissionState, nodes: Dict, next_node: object) -> PipelineNodeType:
         """Process a frame and update context. Return True when node is complete."""
         pass
-    
+
     @abstractmethod
     def reset(self) -> None:
         """Reset node state."""
         pass
 
     def is_done(self) -> bool:
-        return self.state in (PipelineStage.END_MISSION, PipelineState.ERROR)
+        return self.state in (PipelineNodeType.END_MISSION, PipelineState.ERROR)
+
 
 class Pipeline:
     """Main pipeline manager."""
-    
+
     def __init__(self):
-        self.nodes: Dict[PipelineStage, PipelineNode] = {}
-        self.current_node = None
-        self.current_state = PipelineStage.IDLE
+        self.nodes: Dict[PipelineNodeType, PipelineNode] = {}
+        self.next_node = None
+        self.current_node = PipelineNodeType.IDLE
         self.context: Dict[str, Any] = {}
-        self.state_transitions = {
-            PipelineStage.IDLE: PipelineStage.LAUNCH,
-            PipelineStage.LAUNCH: PipelineStage.SCAN,
-            PipelineStage.SCAN: PipelineStage.IDENTIFY,
-            PipelineStage.IDENTIFY: PipelineStage.TRACK,
-            PipelineStage.TRACK: PipelineStage.RETURN,
-            PipelineStage.RETURN: PipelineStage.END_MISSION,
-        }
-    
-    def register_node(self, state: PipelineStage, node: PipelineNode) -> None:
+
+    def register_node(self, node: PipelineNodeType, node_class: PipelineNode) -> None:
         """Register a node for a specific pipeline state."""
-        self.nodes[state] = node
-    
+        self.nodes[node] = node_class
+
     def process_frame(self, mission_state: MissionState) -> Optional[str]:
         """Process a frame through the current pipeline node."""
 
-        self.current_node = self.nodes.get(self.current_state)
+        self.current_node = self.nodes.get(self.current_node)
         if not self.current_node:
-            self.current_state = PipelineState.ERROR
-            return f"No node registered for state: {self.current_state}"
+            self.current_node = PipelineState.ERROR
+            return f"No node registered for state: {self.current_node}"
 
         try:
-            self.current_node.process(mission_state, self.context)
-            if self.current_node.is_done():
+            self.current_node.process(mission_state=mission_state,
+                                      nodes=self.nodes,
+                                      next_node=self.next_node)
+            if self.current_node.is_done() and self.next_node != self.current_node:
                 # Node is complete, transition to next state
-                next_state = self.state_transitions.get(self.current_state)
-                if next_state:
-                    self.current_state = next_state
-                    return f"Transitioned to state: {next_state}"
+                if self.current_node != self.next_node:
+                    return f"Transitioned to state: {self.next_node}"
 
         except Exception as e:
-            self.current_state = PipelineState.ERROR
-            logger.error(f"Error in {self.current_state} node: {str(e)}")
+            self.current_node = PipelineState.ERROR
+            logger.error(f"Error in {self.current_node} node: {str(e)}")
             raise
-    
+
     def reset(self) -> None:
         """Reset pipeline state."""
-        self.current_state = PipelineStage.IDLE
+        self.current_node = PipelineNodeType.IDLE
         self.context.clear()
         for node in self.nodes.values():
             node.reset()
-            
+
     @property
-    def state(self) -> PipelineStage:
-        return self.current_state
+    def get_current_node(self) -> PipelineNodeType:
+        return self.current_node
