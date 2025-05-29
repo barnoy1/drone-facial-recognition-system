@@ -12,6 +12,7 @@ class LaunchNode(PipelineNode):
     def __init__(self, tello: TelloDevice):
         super().__init__(tello)
         self.node = PipelineNodeType.LAUNCH
+        self.name = __class__.__name__
 
     def process(self, mission_state: MissionState, context: Dict[str, Any]) -> bool:
         try:
@@ -21,12 +22,12 @@ class LaunchNode(PipelineNode):
                     if MissionStatus.READY:
                         self.state = PipelineState.IN_PROGRESS
                     elif MissionStatus.RUNNING:
-                        self.state = PipelineState.COMPLETE
+                        self.state = PipelineState.COMPLETED
                         # self.next_state =
                     else:
-                        self.state = PipelineState.ERROR
+                        self.state = PipelineState.FAILED
                 else:
-                    self.state = PipelineState.ERROR
+                    self.state = PipelineState.FAILED
                     return False
         except Exception as e:
             logger.error(f'an error has occurred in node [IDLE]:\n{e}')

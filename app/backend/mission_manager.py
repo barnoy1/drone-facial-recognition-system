@@ -13,9 +13,9 @@ from .camera_manager import FrameData, CameraManager
 from .container import MissionState, MissionStatus, DroneData, PipelineState
 from .navigation_manager import NavigationManager
 from .pipeline.idle_node import IdleNode
+from .pipeline.launch_node import LaunchNode
 from .pipeline.pipeline import Pipeline, PipelineNodeType
 from .devices.tello import TelloFactory, TelloDevice
-from .pipeline.nodes import LaunchNode, ScanNode, IdentifyNode, TrackNode, ReturnNode
 from .config.config_manager import ConfigManager
 from .. import logger
 
@@ -175,11 +175,12 @@ class MissionManager(QObject):
         # Register pipeline nodes
         self.pipeline.register_node(PipelineNodeType.IDLE, IdleNode(self.tello))
         self.pipeline.register_node(PipelineNodeType.LAUNCH, LaunchNode(self.tello))
-        self.pipeline.register_node(PipelineNodeType.SCAN, ScanNode())
-        self.pipeline.register_node(PipelineNodeType.IDENTIFY, IdentifyNode())
-        self.pipeline.register_node(PipelineNodeType.TRACK, TrackNode())
-        self.pipeline.register_node(PipelineNodeType.RETURN, ReturnNode(self.tello))
+        # self.pipeline.register_node(PipelineNodeType.SCAN, ScanNode())
+        # self.pipeline.register_node(PipelineNodeType.IDENTIFY, IdentifyNode())
+        # self.pipeline.register_node(PipelineNodeType.TRACK, TrackNode())
+        # self.pipeline.register_node(PipelineNodeType.RETURN, ReturnNode(self.tello))
 
+        self.pipeline.current_node = IdleNode(self.tello)
         logger.info("Pipeline nodes registered successfully")
 
     def register_state_callback(self, callback: Callable[[MissionState], None]) -> None:
@@ -405,7 +406,7 @@ class MissionManager(QObject):
             # Update mission state with pipeline state
             self.mission_state.pipeline_current_node = self.pipeline.current_node
 
-            if self.mission_state.pipeline_current_node == PipelineState.COMPLETE:
+            if self.mission_state.pipeline_current_node == PipelineState.COMPLETED:
                 self._notify_state_update()
 
             # Handle pipeline completion or errors
@@ -525,7 +526,6 @@ class MissionManager(QObject):
         logger.error(f"Mission error: {error}")
         self.mission_state.error = error
         self.mission_state.status = MissionStatus.ERROR
-
         # Emit error signal
         # self.error_occurred.emit(error)
 

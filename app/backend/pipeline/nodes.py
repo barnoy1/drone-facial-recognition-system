@@ -8,20 +8,6 @@ from app.core.face.inference import process_image  # Import face detection funct
 from ..mission_manager import MissionState
 from ... import logger
 
-class LaunchNode(PipelineNode):
-    def __init__(self, tello: TelloDevice):
-        super().__init__(tello)
-        
-    def process(self, frame: np.ndarray, context: Dict[str, Any]) -> bool:
-        if not context.get('launched', False):
-            success = self.tello.takeoff()
-            context['launched'] = success
-            return success
-        return True
-        
-    def reset(self) -> None:
-        pass
-
 class ScanNode(PipelineNode):
     def __init__(self, scan_interval: float = 1.0):
         self.scan_interval = scan_interval

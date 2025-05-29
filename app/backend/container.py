@@ -52,8 +52,8 @@ class PipelineState(Enum):
     SKIPPED = auto()
     PENDING = auto()
     IN_PROGRESS = auto()
-    COMPLETE = auto()
-    ERROR = auto()
+    COMPLETED = auto()
+    FAILED = auto()
 
 
 class PipelineNodeType(Enum):

@@ -28,7 +28,11 @@ class PipelineNode(ABC):
         pass
 
     def is_done(self) -> bool:
-        return self.state in (PipelineNodeType.END_MISSION, PipelineState.ERROR)
+        return self.state in (PipelineState.COMPLETED, PipelineState.FAILED)
+
+
+class PipelineStage:
+    pass
 
 
 class Pipeline:
@@ -36,8 +40,7 @@ class Pipeline:
 
     def __init__(self):
         self.nodes: Dict[PipelineNodeType, PipelineNode] = {}
-        self.next_node = None
-        self.current_node = PipelineNodeType.IDLE
+        self.current_node = None
         self.context: Dict[str, Any] = {}
 
     def register_node(self, node: PipelineNodeType, node_class: PipelineNode) -> None:
@@ -47,19 +50,19 @@ class Pipeline:
     def process_frame(self, mission_state: MissionState) -> Optional[str]:
         """Process a frame through the current pipeline node."""
 
-        self.current_node = self.nodes.get(self.current_node)
         if not self.current_node:
-            self.current_node = PipelineState.ERROR
+            self.current_node = PipelineStage
             return f"No node registered for state: {self.current_node}"
 
         try:
-            self.current_node.process(mission_state=mission_state,
-                                      nodes=self.nodes,
-                                      next_node=self.next_node)
-            if self.current_node.is_done() and self.next_node != self.current_node:
+            next_node = self.current_node.process(mission_state=mission_state,
+                                                  current_node=self.current_node,
+                                                  nodes=self.nodes)
+
+            if self.current_node.is_done() and next_node is not None:
                 # Node is complete, transition to next state
-                if self.current_node != self.next_node:
-                    return f"Transitioned to state: {self.next_node}"
+                if self.current_node != next_node:
+                    return f"Transitioned from: [{self.current_node}] to [{next_node}]"
 
         except Exception as e:
             self.current_node = PipelineState.ERROR

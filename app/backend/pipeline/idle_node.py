@@ -12,25 +12,19 @@ class IdleNode(PipelineNode):
     def __init__(self, tello: TelloDevice):
         super().__init__(tello)
         self.node = PipelineNodeType.IDLE
-
-    def process(self, mission_state: MissionState, nodes: Dict, next_node: PipelineNode) -> bool:
+        self.name = __class__.__name__
+    def process(self, mission_state: MissionState, nodes: Dict, current_node: PipelineNode) -> PipelineNode:
         try:
+            self.state = PipelineState.IN_PROGRESS
 
             if not self.is_done():
-                if self.tello.is_connected and mission_state.frame_data is not None:
-                    if MissionStatus.READY:
-                        self.state = PipelineState.IN_PROGRESS
-                    elif MissionStatus.RUNNING:
-                        self.state = PipelineState.COMPLETE
-                        from app.backend import LaunchNode
-                        next_node = nodes[PipelineNodeType.LAUNCH]
-                        return True
-
-                    else:
-                        self.state = PipelineState.ERROR
-                else:
-                    self.state = PipelineState.ERROR
-                    return False
+                if not self.tello.is_connected or mission_state.frame_data is None:
+                    self.state = PipelineState.FAILED
+            elif MissionStatus.RUNNING:
+                self.state = PipelineState.COMPLETED
+                from app.backend import LaunchNode
+                current_node = nodes.get(PipelineNodeType.LAUNCH)
+            return current_node
         except Exception as e:
             logger.error(f'an error has occurred in node [IDLE]:\n{e}')
             raise
