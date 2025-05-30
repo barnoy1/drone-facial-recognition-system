@@ -9,101 +9,104 @@ from typing import List, Optional
 
 from app.backend.pipeline.pipeline import PipelineNodeType
 
-
 class RippleLabel(QLabel):
-    """Custom QLabel with ripple animation effect for active pipeline nodes."""
+    """Custom QLabel with radar-like glow animation around the label's contour."""
 
     def __init__(self, text: str, parent=None):
         super().__init__(text, parent)
-        self._ripple_radius = 0
-        self._max_ripple_radius = 60
+        self._glow_opacity = 255  # Opacity for the glow effect
+        self._glow_radius = 0     # Blur radius for the glow effect
+        self._max_glow_radius = 30  # Increased for at least 15px visible expansion
         self._is_active = False
 
-        # Setup ripple animation
-        self.ripple_animation = QPropertyAnimation(self, b"ripple_radius")
-        self.ripple_animation.setDuration(1500)
-        self.ripple_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.ripple_animation.finished.connect(self._restart_animation)
+        # Setup glow animation for radius
+        self.radius_animation = QPropertyAnimation(self, b"glow_radius")
+        self.radius_animation.setDuration(1500)
+        self.radius_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+        self.radius_animation.finished.connect(self._restart_animation)
 
-        # Setup pulsing timer for continuous effect
-        self.pulse_timer = QTimer()
-        self.pulse_timer.timeout.connect(self._pulse_effect)
+        # Setup glow animation for opacity
+        self.opacity_animation = QPropertyAnimation(self, b"glow_opacity")
+        self.opacity_animation.setDuration(1500)
+        self.opacity_animation.setEasingCurve(QEasingCurve.Type.Linear)
+        self.opacity_animation.finished.connect(self._restart_animation)
+
+        # Pulser timer for continuous updates
+        self.pulse_timer = QTimer(self)
+        self.pulse_timer.timeout.connect(self._update_glow_effect)
 
     @Property(int)
-    def ripple_radius(self):
-        return self._ripple_radius
+    def glow_radius(self):
+        return self._glow_radius
 
-    @ripple_radius.setter
-    def ripple_radius(self, value):
-        self._ripple_radius = value
-        self.update()  # Trigger repaint
+    @glow_radius.setter
+    def glow_radius(self, value):
+        self._glow_radius = value
+        self._update_glow_effect()
+
+    @Property(int)
+    def glow_opacity(self):
+        return self._glow_opacity
+
+    @glow_opacity.setter
+    def glow_opacity(self, value):
+        self._glow_opacity = value
+        self._update_glow_effect()
+
+    def _update_glow_effect(self):
+        """Update the glow effect based on radius and opacity."""
+        glow = QGraphicsDropShadowEffect(self)
+        glow.setBlurRadius(self._glow_radius)
+        glow.setColor(QColor(33, 150, 243, self._glow_opacity))
+        glow.setOffset(0, 0)  # Centered glow for radar effect
+        self.setGraphicsEffect(glow)
+        self.update()
 
     def set_active(self, active: bool):
-        """Set the active state and start/stop ripple animation."""
+        """Set the active state and start/stop glow animation."""
+        if self._is_active == active:
+            return
         self._is_active = active
         if active:
-            self._start_ripple_animation()
-            self.pulse_timer.start(100)  # Pulse every 100ms
+            self._start_glow_animation()
+            self.pulse_timer.start(16)  # ~60 FPS for smooth animation
         else:
-            self._stop_ripple_animation()
+            self._stop_glow_animation()
             self.pulse_timer.stop()
 
-    def _start_ripple_animation(self):
-        """Start the ripple animation."""
-        self.ripple_animation.setStartValue(0)
-        self.ripple_animation.setEndValue(self._max_ripple_radius)
-        self.ripple_animation.start()
+    def _start_glow_animation(self):
+        """Start the glow animation for radius and opacity."""
+        # Stop any existing animations
+        self.radius_animation.stop()
+        self.opacity_animation.stop()
 
-    def _stop_ripple_animation(self):
-        """Stop the ripple animation."""
-        self.ripple_animation.stop()
-        self._ripple_radius = 0
+        # Animate radius from 10 to max_glow_radius for noticeable expansion
+        self.radius_animation.setStartValue(10)
+        self.radius_animation.setEndValue(self._max_glow_radius)
+        self.radius_animation.start()
+
+        # Animate opacity from 255 to 50 for better visibility
+        self.opacity_animation.setStartValue(255)
+        self.opacity_animation.setEndValue(50)
+        self.opacity_animation.start()
+
+    def _stop_glow_animation(self):
+        """Stop the glow animation and reset effect."""
+        self.radius_animation.stop()
+        self.opacity_animation.stop()
+        self._glow_radius = 0
+        self._glow_opacity = 255
+        self.setGraphicsEffect(None)  # Remove glow effect
         self.update()
 
     def _restart_animation(self):
-        """Restart animation if still active."""
+        """Restart the glow animation if active."""
         if self._is_active:
-            self._start_ripple_animation()
-
-    def _pulse_effect(self):
-        """Create subtle pulsing effect on the node itself."""
-        if self._is_active:
-            # Add slight opacity variation for pulsing
-            self.update()
+            self._start_glow_animation()
 
     def paintEvent(self, event):
-        """Override paint event to draw ripple effect."""
-        super().paintEvent(event)
-
-        if self._is_active and self._ripple_radius > 0:
-            painter = QPainter(self)
-            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-            # Calculate center point
-            center_x = self.width() // 2
-            center_y = self.height() // 2
-
-            # Draw multiple ripple rings with decreasing opacity
-            for i in range(3):
-                ring_radius = self._ripple_radius - (i * 15)
-                if ring_radius > 0:
-                    # Calculate opacity based on ring position
-                    opacity = max(0, 80 - (self._ripple_radius / self._max_ripple_radius * 80) - (i * 20))
-
-                    # Set pen for ripple ring
-                    pen = QPen(QColor(33, 150, 243, int(opacity)))
-                    pen.setWidth(2)
-                    painter.setPen(pen)
-                    painter.setBrush(QBrush(QColor(33, 150, 243, int(opacity // 4))))
-
-                    # Draw ripple ring
-                    painter.drawEllipse(
-                        center_x - ring_radius,
-                        center_y - ring_radius,
-                        ring_radius * 2,
-                        ring_radius * 2
-                    )
-
+        """Override paintEvent to ensure text is drawn on top."""
+        super().paintEvent(event)  # Text is drawn by QLabel, glow is handled by QGraphicsEffect
 
 class PipelineNode(QWidget):
     """Enhanced pipeline node with connection lines and status indicators."""
@@ -114,7 +117,7 @@ class PipelineNode(QWidget):
         self.status = "pending"  # pending, active, completed, error
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setContentsMargins(10, 10, 10, 10)  # Added margins for glow visibility
 
         # Create ripple label
         self.label = RippleLabel(text)
@@ -122,13 +125,6 @@ class PipelineNode(QWidget):
         self._update_style()
 
         layout.addWidget(self.label)
-
-        # Add drop shadow effect
-        shadow = QGraphicsDropShadowEffect()
-        shadow.setBlurRadius(10)
-        shadow.setOffset(2, 2)
-        shadow.setColor(QColor(0, 0, 0, 50))
-        self.label.setGraphicsEffect(shadow)
 
     def set_status(self, status: str):
         """Set node status: pending, active, completed, error."""
@@ -161,7 +157,6 @@ class PipelineNode(QWidget):
                     min-width: 100px;
                     font-weight: bold;
                     font-size: 12px;
-                    box-shadow: 0 4px 8px rgba(33, 150, 243, 0.3);
                 }
             """,
             "completed": """
@@ -191,6 +186,16 @@ class PipelineNode(QWidget):
         }
         self.label.setStyleSheet(styles.get(self.status, styles["pending"]))
 
+        # Adjust shadow effect based on status
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(10)
+        shadow.setOffset(2, 2)
+        if self.status == "active":
+            shadow.setColor(QColor(33, 150, 243, 100))  # Blue shadow for active state
+            shadow.setBlurRadius(15)  # Slightly larger blur for emphasis
+        else:
+            shadow.setColor(QColor(0, 0, 0, 50))  # Default shadow
+        self.label.setGraphicsEffect(shadow)
 
 class ConnectionLine(QWidget):
     """Widget to draw connection lines between pipeline nodes."""
@@ -217,7 +222,6 @@ class ConnectionLine(QWidget):
 
         painter.setPen(pen)
         painter.drawLine(0, 2, 30, 2)
-
 
 class AppView(QMainWindow):
     # Signals

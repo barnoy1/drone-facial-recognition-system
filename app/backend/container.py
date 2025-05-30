@@ -17,7 +17,7 @@ class HUD:
     LINE_TYPE = None  # Not used in PIL; kept for compatibility
     PADDING = 10
     LINE_SPACING = 30
-    Y_OFFSET = 30
+    Y_OFFSET = 80
 
     def __post_init__(self):
         """Initialize font after dataclass creation."""
