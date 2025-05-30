@@ -18,8 +18,10 @@ from .pipeline.pipeline import Pipeline, PipelineNodeType
 from .devices.tello import TelloFactory, TelloDevice
 from .config.config_manager import ConfigManager
 from .. import logger
+from ..core.utilities.decorators.singleton import Singleton
 
 
+@Singleton
 class MissionManager(QObject):
     """Central orchestrator for the drone mission.
 
@@ -32,22 +34,22 @@ class MissionManager(QObject):
     6. Thread-safe operations with Qt signals/slots
     """
 
-    # Qt signals for thread-safe communication
-    from PyQt6.QtCore import pyqtSignal
-    state_changed = pyqtSignal(object)  # MissionState
-    error_occurred = pyqtSignal(str)
-    mission_completed = pyqtSignal()
-    telemetry_updated = pyqtSignal(object)  # DroneData
-
-    def __init__(self, args: object,
-                 cb_on_state_changed: PipelineNodeType,
-                 cb_on_update_pipeline_state: PipelineNodeType,
-                 cb_on_frame_updated: np.ndarray,
-                 cb_on_error: str) -> object:
+    def __init__(self) -> object:
         super().__init__()
+        self.nav_manager = None
+        self.camera_manager = None
+        self.pipeline = None
+        self.tello = None
+        self.mission_state = None
 
+    def initialize(self, args: object,
+                   cb_on_state_changed: PipelineNodeType,
+                   cb_on_update_pipeline_state: PipelineNodeType,
+                   cb_on_frame_updated: np.ndarray,
+                   cb_on_error: str):
         # Core components
         ConfigManager.initialize(args)
+
 
         self.tello: Optional[TelloDevice] = None
         self.pipeline: Optional[Pipeline] = None
@@ -75,7 +77,7 @@ class MissionManager(QObject):
         self._connection_check_failures = 0
         self._max_connection_failures = 3
 
-        self.initialize()
+        self._initialize()
         logger.info("MissionManager initialized")
 
         self.register_state_callback(cb_on_state_changed)
@@ -124,8 +126,7 @@ class MissionManager(QObject):
         self.connection_timer.setInterval(2000)  # 2 seconds
         self.connection_timer.start()
 
-
-    def initialize(self) -> bool:
+    def _initialize(self) -> bool:
         """Initialize mission manager components."""
         try:
             logger.info("Initializing mission manager components...")
@@ -253,7 +254,6 @@ class MissionManager(QObject):
 
         # Start timers
         self.stream_timer.start()
-
 
         # Initialize pipeline state
         if self.pipeline:
@@ -399,7 +399,7 @@ class MissionManager(QObject):
                 if frame_interval > 0:
                     instant_fps = 1.0 / frame_interval
                     # Smooth FPS calculation
-                    self.mission_state.fps = np.round((self.mission_state.fps * 0.9) + (instant_fps * 0.1),2)
+                    self.mission_state.fps = np.round((self.mission_state.fps * 0.9) + (instant_fps * 0.1), 2)
             self._last_frame_time = current_time
 
             # Add overlays based on pipeline state
