@@ -10,103 +10,112 @@ from typing import List, Optional
 from app.backend.pipeline.pipeline import PipelineNodeType
 
 class RippleLabel(QLabel):
-    """Custom QLabel with radar-like glow animation around the label's contour."""
+    """Custom QLabel with water-like ripple animation around the label's contour."""
 
     def __init__(self, text: str, parent=None):
         super().__init__(text, parent)
-        self._glow_opacity = 255  # Opacity for the glow effect
-        self._glow_radius = 0     # Blur radius for the glow effect
-        self._max_glow_radius = 30  # Increased for at least 15px visible expansion
+        self._ripple_offset = 0  # Distance from label's contour
+        self._max_ripple_offset = 15  # Minimum 15px expansion
+        self._ripple_opacity = 255  # Opacity of the ripple
         self._is_active = False
 
-        # Setup glow animation for radius
-        self.radius_animation = QPropertyAnimation(self, b"glow_radius")
-        self.radius_animation.setDuration(1500)
-        self.radius_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.radius_animation.finished.connect(self._restart_animation)
+        # Setup ripple animation for offset
+        self.offset_animation = QPropertyAnimation(self, b"ripple_offset")
+        self.offset_animation.setDuration(1500)
+        self.offset_animation.setEasingCurve(QEasingCurve.Type.OutQuad)  # Smooth water-like expansion
+        self.offset_animation.finished.connect(self._restart_animation)
 
-        # Setup glow animation for opacity
-        self.opacity_animation = QPropertyAnimation(self, b"glow_opacity")
+        # Setup ripple animation for opacity
+        self.opacity_animation = QPropertyAnimation(self, b"ripple_opacity")
         self.opacity_animation.setDuration(1500)
         self.opacity_animation.setEasingCurve(QEasingCurve.Type.Linear)
         self.opacity_animation.finished.connect(self._restart_animation)
 
-        # Pulser timer for continuous updates
+        # Pulser timer for continuous repaints
         self.pulse_timer = QTimer(self)
-        self.pulse_timer.timeout.connect(self._update_glow_effect)
+        self.pulse_timer.timeout.connect(self.update)
 
     @Property(int)
-    def glow_radius(self):
-        return self._glow_radius
+    def ripple_offset(self):
+        return self._ripple_offset
 
-    @glow_radius.setter
-    def glow_radius(self, value):
-        self._glow_radius = value
-        self._update_glow_effect()
+    @ripple_offset.setter
+    def ripple_offset(self, value):
+        self._ripple_offset = value
+        self.update()
 
     @Property(int)
-    def glow_opacity(self):
-        return self._glow_opacity
+    def ripple_opacity(self):
+        return self._ripple_opacity
 
-    @glow_opacity.setter
-    def glow_opacity(self, value):
-        self._glow_opacity = value
-        self._update_glow_effect()
-
-    def _update_glow_effect(self):
-        """Update the glow effect based on radius and opacity."""
-        glow = QGraphicsDropShadowEffect(self)
-        glow.setBlurRadius(self._glow_radius)
-        glow.setColor(QColor(33, 150, 243, self._glow_opacity))
-        glow.setOffset(0, 0)  # Centered glow for radar effect
-        self.setGraphicsEffect(glow)
+    @ripple_opacity.setter
+    def ripple_opacity(self, value):
+        self._ripple_opacity = value
         self.update()
 
     def set_active(self, active: bool):
-        """Set the active state and start/stop glow animation."""
+        """Set the active state and start/stop ripple animation."""
         if self._is_active == active:
             return
         self._is_active = active
         if active:
-            self._start_glow_animation()
+            self._start_ripple_animation()
             self.pulse_timer.start(16)  # ~60 FPS for smooth animation
         else:
-            self._stop_glow_animation()
+            self._stop_ripple_animation()
             self.pulse_timer.stop()
 
-    def _start_glow_animation(self):
-        """Start the glow animation for radius and opacity."""
-        # Stop any existing animations
-        self.radius_animation.stop()
+    def _start_ripple_animation(self):
+        """Start the ripple animation for offset and opacity."""
+        self.offset_animation.stop()
         self.opacity_animation.stop()
 
-        # Animate radius from 10 to max_glow_radius for noticeable expansion
-        self.radius_animation.setStartValue(10)
-        self.radius_animation.setEndValue(self._max_glow_radius)
-        self.radius_animation.start()
+        # Animate offset from 0 to max_ripple_offset
+        self.offset_animation.setStartValue(0)
+        self.offset_animation.setEndValue(self._max_ripple_offset)
+        self.offset_animation.start()
 
-        # Animate opacity from 255 to 50 for better visibility
+        # Animate opacity from 255 to 50
         self.opacity_animation.setStartValue(255)
         self.opacity_animation.setEndValue(50)
         self.opacity_animation.start()
 
-    def _stop_glow_animation(self):
-        """Stop the glow animation and reset effect."""
-        self.radius_animation.stop()
+    def _stop_ripple_animation(self):
+        """Stop the ripple animation and reset effect."""
+        self.offset_animation.stop()
         self.opacity_animation.stop()
-        self._glow_radius = 0
-        self._glow_opacity = 255
-        self.setGraphicsEffect(None)  # Remove glow effect
+        self._ripple_offset = 0
+        self._ripple_opacity = 255
         self.update()
 
     def _restart_animation(self):
-        """Restart the glow animation if active."""
+        """Restart the ripple animation if active."""
         if self._is_active:
-            self._start_glow_animation()
+            self._start_ripple_animation()
 
     def paintEvent(self, event):
-        """Override paintEvent to ensure text is drawn on top."""
-        super().paintEvent(event)  # Text is drawn by QLabel, glow is handled by QGraphicsEffect
+        """Draw a rectangular ripple around the label's contour."""
+        super().paintEvent(event)  # Draw the label's text and background
+
+        if not self._is_active or self._ripple_offset <= 0:
+            return
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        # Define the ripple rectangle, expanding from the label's contour
+        ripple_rect = self.rect().adjusted(
+            -self._ripple_offset, -self._ripple_offset,
+            self._ripple_offset, self._ripple_offset
+        )
+
+        # Set up the pen for a sharp, water-like ripple
+        pen = QPen(QColor(33, 150, 243, self._ripple_opacity), 2)  # Thin, sharp ring
+        painter.setPen(pen)
+        painter.setBrush(Qt.NoBrush)  # No fill to keep text visible
+
+        # Draw the rectangular ripple with rounded corners to match label
+        painter.drawRoundedRect(ripple_rect, 18, 18)  # Match label's border-radius
 
 class PipelineNode(QWidget):
     """Enhanced pipeline node with connection lines and status indicators."""
@@ -117,7 +126,7 @@ class PipelineNode(QWidget):
         self.status = "pending"  # pending, active, completed, error
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)  # Added margins for glow visibility
+        layout.setContentsMargins(10, 10, 10, 10)  # Margins for ripple visibility
 
         # Create ripple label
         self.label = RippleLabel(text)
