@@ -12,6 +12,7 @@ import numpy as np
 from .camera_manager import FrameData, CameraManager
 from .container import MissionState, MissionStatus, DroneData, PipelineState
 from .navigation_manager import NavigationManager
+from .pipeline.emergency_node import Emergency
 from .pipeline.idle_node import Idle
 from .pipeline.launch_node import Launch
 from .pipeline.pipeline import Pipeline, PipelineNodeType
@@ -48,7 +49,7 @@ class MissionManager(QObject):
         self.camera_manager = None
         self.pipeline = None
         self.tello = None
-        self.mission_state = None
+        self.mission_state : MissionState = None
 
     def initialize(self, args: object,
                    cb_on_state_changed: PipelineNodeType,
@@ -183,6 +184,7 @@ class MissionManager(QObject):
             raise RuntimeError("Pipeline or Tello device not available")
 
         # Register pipeline nodes
+        self.pipeline.register_node(PipelineNodeType.EMERGENCY_STOP, Emergency(self.tello))
         self.pipeline.register_node(PipelineNodeType.IDLE, Idle(self.tello))
         self.pipeline.register_node(PipelineNodeType.LAUNCH, Launch(self.tello))
         # self.pipeline.register_node(PipelineNodeType.SCAN, ScanNode())
@@ -373,7 +375,7 @@ class MissionManager(QObject):
 
     def _stop_all_timers(self) -> None:
         """Stop all running timers."""
-        timers = [self.mission_timer, self.stream_timer, self.telemetry_timer, self.fps_timer]
+        timers = [self.stream_timer, self.connection_timer]
         for timer in timers:
             if timer.isActive():
                 timer.stop()
@@ -411,8 +413,8 @@ class MissionManager(QObject):
             self._last_frame_time = current_time
 
             # Process frame through pipeline
-            state_has_changed_trigger = self.pipeline.process_frame(self.mission_state)
-            if state_has_changed_trigger:
+            self.mission_state.state_has_changed_trigger = self.pipeline.process_frame(self.mission_state)
+            if self.mission_state.state_has_changed_trigger:
                 logger.info("state has change trigger received")
                 self._notify_state_update()
 

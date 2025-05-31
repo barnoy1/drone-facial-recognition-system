@@ -57,6 +57,7 @@ class PipelineState(Enum):
 
 
 class PipelineNodeType(Enum):
+    EMERGENCY_STOP = auto()
     IDLE = auto()
     LAUNCH = auto()
     SCAN = auto()
@@ -111,3 +112,4 @@ class MissionState:
     last_telemetry_update: float = 0.0
     frames_processed: int = 0
     fps: float = 0.0
+    state_has_changed_trigger: bool = False

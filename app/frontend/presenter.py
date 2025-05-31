@@ -53,8 +53,9 @@ class Presenter:
             return
         self.view.set_mission_running(True)
         self.view.log_message("Mission started")
-
+        # set the current node to IDLE state with result COMPLETED so state transition will be called in the following cycle
         pipeline = self.mission_manager.pipeline
+        pipeline.current_node = pipeline.nodes[PipelineNodeType.IDLE]
         self.mission_manager.mission_state.pipeline_current_node = pipeline.current_node
         pipeline.current_node.state = PipelineState.COMPLETED
 
@@ -62,22 +63,33 @@ class Presenter:
         """Execute emergency stop."""
         self.view.set_mission_running(False)
         self.view.log_message("EMERGENCY STOP EXECUTED")
+        # set the current node to EMERGENCY state with result FAILED so state transition will be called in the following cycle
+        pipeline = self.mission_manager.pipeline
+        pipeline.current_node = pipeline.nodes[PipelineNodeType.EMERGENCY_STOP]
+        self.mission_manager.mission_state.pipeline_current_node = pipeline.current_node
+        pipeline.current_node.state = PipelineState.FAILED
+        self.mission_manager.mission_state.external_trigger = True
 
     def _update_pipeline_state(self, state: PipelineNodeType) -> None:
         """Update pipeline state in model and view."""
         self.view.update_pipeline_state(state)
 
-    def _on_state_changed(self, state: PipelineNodeType) -> None:
+    def _on_state_changed(self, mission_state: MissionState) -> None:
         """Handle state changes."""
-        if state == PipelineNodeType.END_MISSION:
-            self.model.status.is_running = False
-            self.view.set_mission_running(False)
-            self.view.log_message("Mission completed successfully")
-        elif state == PipelineState.FAILED:
-            self.emergency_stop()
+        if mission_state.state_has_changed_trigger:
+            self.view.log_message(f"state changed from "
+                                  f"[{mission_state.pipeline_previous_node.name}] to "
+                                  f"[{mission_state.pipeline_current_node.name}]")
+
+        # if state == PipelineNodeType.END_MISSION:
+        #     self.model.status.is_running = False
+        #     self.view.set_mission_running(False)
+        #     self.view.log_message("Mission completed successfully")
+        # elif state == PipelineState.FAILED:
+        #     self.emergency_stop()
 
     def _on_frame_updated(self, frame: np.ndarray) -> None:
-        """Handle frame updates."""
+        """Handle frame updates}."""
         self.view.update_frame(frame)
 
     def _on_error(self, error: str) -> None:

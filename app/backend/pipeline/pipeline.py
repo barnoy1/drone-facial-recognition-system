@@ -85,7 +85,3 @@ class Pipeline:
         self.context.clear()
         for node in self.nodes.values():
             node.reset()
-
-    @property
-    def get_current_node(self) -> PipelineNodeType:
-        return self.current_node
