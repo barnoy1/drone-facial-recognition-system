@@ -48,7 +48,6 @@ class MissionManager(QObject):
 
     def initialize(self, args: object,
                    cb_on_state_changed: Callable[[PipelineNodeType], None],
-                   cb_on_update_pipeline_state: Callable[[PipelineNodeType], None],
                    cb_on_frame_updated: Callable[[np.ndarray], None],
                    cb_on_telemetry_updated: Callable[[MissionState], None],
                    cb_on_error: Callable[[str], None]) -> None:
@@ -58,7 +57,6 @@ class MissionManager(QObject):
         self.mission_state.status = MissionStatus.NOT_INITIALIZED
         self.callback_manager = CallbackManager()
         self.callback_manager.register_state_callback(cb_on_state_changed)
-        self.callback_manager.register_state_callback(cb_on_update_pipeline_state)
         self.callback_manager.register_frame_callback(cb_on_frame_updated)
         self.callback_manager.register_telemetry_callback(cb_on_telemetry_updated)
         self.callback_manager.register_error_callback(cb_on_error)

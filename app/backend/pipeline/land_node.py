@@ -36,7 +36,7 @@ class Land(PipelineNode):
                     return current_node
             return current_node
         except Exception as e:
-            logger.error(f'an error has occurred in node [IDLE]:\n{e}')
+            logger.error(f'an error has occurred in node :\n{e}')
             raise
 
     def reset(self) -> None:

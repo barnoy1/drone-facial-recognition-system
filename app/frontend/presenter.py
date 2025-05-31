@@ -15,7 +15,6 @@ class Presenter:
         self.mission_manager.initialize(
             args=args,
             cb_on_state_changed=self._on_state_changed,
-            cb_on_update_pipeline_state=self._on_state_changed,  # Use same callback for pipeline state
             cb_on_frame_updated=self._on_frame_updated,
             cb_on_error=self._on_error,
             cb_on_telemetry_updated=self._on_telemetry_updated

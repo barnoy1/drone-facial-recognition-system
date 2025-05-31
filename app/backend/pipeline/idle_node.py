@@ -30,7 +30,7 @@ class Idle(PipelineNode):
                     mission_state.status = MissionStatus.READY
             return current_node
         except Exception as e:
-            logger.error(f'an error has occurred in node [IDLE]:\n{e}')
+            logger.error(f'an error has occurred in node :\n{e}')
             raise
 
     def reset(self) -> None:
