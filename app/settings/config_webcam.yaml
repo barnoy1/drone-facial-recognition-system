@@ -14,3 +14,5 @@ pipeline:
     skip_track_target_node: True
     skip_find_home_node: True
     skip_land_node: True
+face:
+  embeddings_file: '/home/ron/repo/projects/drone-facial-recognition-system/app/core/face/dataset/lfw_dataset/embeddings.npy'

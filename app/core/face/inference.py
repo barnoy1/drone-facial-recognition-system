@@ -53,6 +53,9 @@ def try_camera(device_id):
     print(f"Frame shape: {frame.shape}")
     return cap
 
+def do_inference(args_dict):
+    pass
+
 def main():
     """Main function for real-time streaming face recognition."""
     parser = argparse.ArgumentParser(description='Real-time Face Recognition System')
@@ -68,7 +71,12 @@ def main():
     data_dir = get_data_dir()
     reference_dir = data_dir / "lfw_dataset/target"  # Removed reference-dir argument
     embeddings_file = args.embeddings_file or (data_dir / "embeddings.npy")
-    
+
+    args_dict = dict(
+        embeddings_file=args.embeddings_file or (data_dir / "embeddings.npy"),
+    )
+
+
     # Load or create features
     try:
         reference_features = np.load(embeddings_file, allow_pickle=True).item()

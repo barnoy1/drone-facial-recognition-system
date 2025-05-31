@@ -7,7 +7,6 @@ from .. import ConfigManager
 from ..container import MissionStatus, MissionState
 from ..devices.tello import TelloDevice
 from .pipeline import PipelineNode, PipelineState, PipelineNodeType
-from app.core.face.inference import process_image  # Import face detection function
 from ... import logger
 
 class DetectFace(PipelineNode):
@@ -34,6 +33,13 @@ class DetectFace(PipelineNode):
                     self.state = PipelineState.SKIPPED
                     sleep(1)
                     return current_node
+
+                from app.core.face.inference import do_inference
+                args_dict =dict(
+                    embeddings_file=ConfigManager.face_config.embeddings_file
+                )
+                do_inference(args_dict)
+
             return current_node
         except Exception as e:
             logger.error(f'an error has occurred in node :\n{e}')

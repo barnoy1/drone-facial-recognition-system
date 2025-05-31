@@ -9,6 +9,10 @@ from app.core.utilities.json import pretty_print_dict
 
 
 @dataclass
+class FaceConfig:
+    embeddings_file: str = ''
+
+@dataclass
 class PipelineConfig:
     skip_launch_node: bool = False
     skip_find_target_node: bool = False
@@ -60,7 +64,12 @@ class ConfigManager:
         # Parse Tello configuration
         tello_config = ConfigManager.config.get('tello', {})
         pipeline_config = ConfigManager.config.get('pipeline', {})
+        face_config = ConfigManager.config.get('face', {})
         logger.info(pretty_print_dict('Tello config from file', tello_config))
+
+        ConfigManager.face_config = FaceConfig(
+            embeddings_file=face_config.get('embeddings_file', ''),
+        )
 
         ConfigManager.tello_config = TelloConfig(
             mock_enabled=tello_config.get('mock_enabled', False),
