@@ -47,7 +47,7 @@ class Pipeline:
         """Register a node for a specific pipeline state."""
         self.nodes[node] = node_class
 
-    def process_frame(self, mission_state: MissionState) -> Optional[str]:
+    def process_frame(self, mission_state: MissionState) -> bool:
         """Process a frame through the current pipeline node."""
 
         if not self.current_node:
@@ -62,10 +62,16 @@ class Pipeline:
             if self.current_node.is_done() and next_node is not None:
                 # Node is complete, transition to next state
                 if self.current_node != next_node:
-                    return f"Transitioned from: [{self.current_node}] to [{next_node}]"
+                    self.current_node = next_node
+                    logger.info(f"Transitioned from: [{self.current_node}] to [{next_node}]")
+                    # Update mission state with pipeline state
+                    mission_state.pipeline_current_node = self.current_node
+                    return True
+
+            return False
 
         except Exception as e:
-            self.current_node = PipelineState.ERROR
+            self.current_node = PipelineState.FAILED
             logger.error(f"Error in {self.current_node} node: {str(e)}")
             raise
 

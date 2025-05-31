@@ -8,27 +8,24 @@ from app.core.face.inference import process_image  # Import face detection funct
 from ..mission_manager import MissionState
 from ... import logger
 
-class LaunchNode(PipelineNode):
+class Launch(PipelineNode):
     def __init__(self, tello: TelloDevice):
         super().__init__(tello)
         self.node = PipelineNodeType.LAUNCH
         self.name = __class__.__name__
-
-    def process(self, mission_state: MissionState, context: Dict[str, Any]) -> bool:
+    def process(self, mission_state: MissionState, nodes: Dict, current_node: PipelineNode) -> PipelineNode:
         try:
-
-            if not self.is_done():
-                if self.tello.is_connected and mission_state.frame_data is not None:
-                    if MissionStatus.READY:
-                        self.state = PipelineState.IN_PROGRESS
-                    elif MissionStatus.RUNNING:
-                        self.state = PipelineState.COMPLETED
-                        # self.next_state =
-                    else:
-                        self.state = PipelineState.FAILED
-                else:
+            if self.is_done():
+                from app.backend import Launch
+                current_node = nodes.get(PipelineNodeType.LAUNCH)
+                mission_state.status = MissionStatus.RUNNING
+                return current_node
+            else:
+                self.state = PipelineState.IN_PROGRESS
+                if not self.tello.is_connected or mission_state.frame_data is None:
                     self.state = PipelineState.FAILED
-                    return False
+                    mission_state.status = MissionStatus.ERROR
+            return current_node
         except Exception as e:
             logger.error(f'an error has occurred in node [IDLE]:\n{e}')
             raise

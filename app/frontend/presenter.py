@@ -55,8 +55,8 @@ class Presenter:
         self.view.log_message("Mission started")
 
         pipeline = self.mission_manager.pipeline
-        curr_node = self.mission_manager.mission_state.pipeline_current_node
-        self.mission_manager.mission_state.pipeline_current_node.state = PipelineState.COMPLETED
+        self.mission_manager.mission_state.pipeline_current_node = pipeline.current_node
+        pipeline.current_node.state = PipelineState.COMPLETED
 
     def emergency_stop(self) -> None:
         """Execute emergency stop."""

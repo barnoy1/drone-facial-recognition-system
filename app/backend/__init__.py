@@ -10,8 +10,8 @@ This package contains:
 from .config.config_manager import ConfigManager
 from .devices.tello import TelloFactory
 from .mission_manager import MissionManager
-from .pipeline.idle_node import IdleNode
-from .pipeline.launch_node import LaunchNode
+from .pipeline.idle_node import Idle
+from .pipeline.launch_node import Launch
 from .pipeline.pipeline import Pipeline, PipelineNodeType
 # from .pipeline.nodes import  ScanNode, IdentifyNode, TrackNode, ReturnNode
 
@@ -21,8 +21,8 @@ __all__ = [
     'MissionManager',
     'Pipeline',
     'PipelineNodeType',
-    'IdleNode',
-    'LaunchNode',
+    'Idle',
+    'Launch',
     # 'ScanNode',
     # 'IdentifyNode',
     # 'TrackNode',

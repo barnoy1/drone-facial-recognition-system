@@ -12,8 +12,8 @@ import numpy as np
 from .camera_manager import FrameData, CameraManager
 from .container import MissionState, MissionStatus, DroneData, PipelineState
 from .navigation_manager import NavigationManager
-from .pipeline.idle_node import IdleNode
-from .pipeline.launch_node import LaunchNode
+from .pipeline.idle_node import Idle
+from .pipeline.launch_node import Launch
 from .pipeline.pipeline import Pipeline, PipelineNodeType
 from .devices.tello import TelloFactory, TelloDevice
 from .config.config_manager import ConfigManager
@@ -36,6 +36,14 @@ class MissionManager(QObject):
 
     def __init__(self) -> object:
         super().__init__()
+        self._error_callbacks = None
+        self._frame_updated_callbacks = None
+        self._state_changed_callbacks = None
+        self._max_connection_failures = None
+        self._connection_check_failures = None
+        self._fps_update_interval = None
+        self._frame_count = None
+        self._last_frame_time = None
         self.nav_manager = None
         self.camera_manager = None
         self.pipeline = None
@@ -49,7 +57,6 @@ class MissionManager(QObject):
                    cb_on_error: str):
         # Core components
         ConfigManager.initialize(args)
-
 
         self.tello: Optional[TelloDevice] = None
         self.pipeline: Optional[Pipeline] = None
@@ -69,7 +76,7 @@ class MissionManager(QObject):
         self._setup_timers()
 
         # Callback registry
-        self._state_callbacks: List[Callable[[PipelineState], None]] = []
+        self._state_changed_callbacks: List[Callable[[PipelineState], None]] = []
         self._frame_updated_callbacks: List[Callable[[np.ndarray], None]] = []
         self._error_callbacks: List[Callable[[str], None]] = []
 
@@ -77,7 +84,7 @@ class MissionManager(QObject):
         self._connection_check_failures = 0
         self._max_connection_failures = 3
 
-        self._initialize()
+        self._initialize_internal()
         logger.info("MissionManager initialized")
 
         self.register_state_callback(cb_on_state_changed)
@@ -126,7 +133,7 @@ class MissionManager(QObject):
         self.connection_timer.setInterval(2000)  # 2 seconds
         self.connection_timer.start()
 
-    def _initialize(self) -> bool:
+    def _initialize_internal(self) -> bool:
         """Initialize mission manager components."""
         try:
             logger.info("Initializing mission manager components...")
@@ -176,20 +183,22 @@ class MissionManager(QObject):
             raise RuntimeError("Pipeline or Tello device not available")
 
         # Register pipeline nodes
-        self.pipeline.register_node(PipelineNodeType.IDLE, IdleNode(self.tello))
-        self.pipeline.register_node(PipelineNodeType.LAUNCH, LaunchNode(self.tello))
+        self.pipeline.register_node(PipelineNodeType.IDLE, Idle(self.tello))
+        self.pipeline.register_node(PipelineNodeType.LAUNCH, Launch(self.tello))
         # self.pipeline.register_node(PipelineNodeType.SCAN, ScanNode())
         # self.pipeline.register_node(PipelineNodeType.IDENTIFY, IdentifyNode())
         # self.pipeline.register_node(PipelineNodeType.TRACK, TrackNode())
         # self.pipeline.register_node(PipelineNodeType.RETURN, ReturnNode(self.tello))
 
-        self.pipeline.current_node = IdleNode(self.tello)
+        self.pipeline.current_node = self.pipeline.nodes[PipelineNodeType.IDLE]
+        self.mission_state.pipeline_current_node = self.pipeline.current_node
+
         logger.info("Pipeline nodes registered successfully")
 
     def register_state_callback(self, callback: Callable[[MissionState], None]) -> None:
         """Register callback for state updates."""
-        self._state_callbacks.append(callback)
-        logger.info(f"State callback registered. Total callbacks: {len(self._state_callbacks)}")
+        self._state_changed_callbacks.append(callback)
+        logger.info(f"State callback registered. Total callbacks: {len(self._state_changed_callbacks)}")
 
     def register_frame_callback(self, callback: Callable[[np.ndarray], None]) -> None:
         """Register callback for state updates."""
@@ -207,7 +216,7 @@ class MissionManager(QObject):
             # self.state_changed.emit(self.mission_state)
 
             # Call registered callbacks
-            for callback in self._state_callbacks:
+            for callback in self._state_changed_callbacks:
                 try:
                     callback(self.mission_state)
                 except Exception as e:
@@ -257,7 +266,9 @@ class MissionManager(QObject):
 
         # Initialize pipeline state
         if self.pipeline:
-            self.mission_state.pipeline_state = PipelineNodeType.LAUNCH
+            self.pipeline.current_node = self.pipeline.nodes[PipelineNodeType.IDLE]
+            self.pipeline.current_node.state = PipelineState.COMPLETED
+            self.mission_state.pipeline_current_node = self.pipeline.current_node
 
         self._notify_state_update()
         logger.info("Mission started successfully")
@@ -388,9 +399,6 @@ class MissionManager(QObject):
 
             self.mission_state.drone_data = self.nav_manager.get_measurements()
 
-            # Process frame through pipeline
-            self.pipeline.process_frame(self.mission_state)
-
             # Update frame processing statistics
             self.mission_state.frames_processed += 1
             current_time = time.time()
@@ -402,14 +410,15 @@ class MissionManager(QObject):
                     self.mission_state.fps = np.round((self.mission_state.fps * 0.9) + (instant_fps * 0.1), 2)
             self._last_frame_time = current_time
 
+            # Process frame through pipeline
+            state_has_changed_trigger = self.pipeline.process_frame(self.mission_state)
+            if state_has_changed_trigger:
+                logger.info("state has change trigger received")
+                self._notify_state_update()
+
+
             # Add overlays based on pipeline state
             self.camera_manager.add_overlay(self.mission_state)
-
-            # Update mission state with pipeline state
-            self.mission_state.pipeline_current_node = self.pipeline.current_node
-
-            if self.mission_state.pipeline_current_node == PipelineState.COMPLETED:
-                self._notify_state_update()
 
             # Handle pipeline completion or errors
             if self.pipeline.current_node == PipelineNodeType.END_MISSION:
