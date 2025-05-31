@@ -253,19 +253,19 @@ class AppView(QMainWindow):
         # Status labels
         self.status_labels = {}
         status_fields = [
+            ("Mission Start", "mission_start_time"),
+            ("Mission Time", "mission_duration"),
             ("Pipeline State", "pipeline_state"),
-            ("Mission Time (s)", "mission_time"),
             ("Frames Processed", "frames_processed"),
             ("FPS", "fps"),
             ("Detected Faces", "detected_faces_count"),
-            ("Error", "error"),
             ("Battery Critical", "battery_critical"),
-            ("Connection Lost", "connection_lost"),
             ("Initialization Complete", "initialization_complete"),
             ("Battery (%)", "drone_data.battery"),
             ("Height (cm)", "drone_data.height"),
             ("Temperature (°C)", "drone_data.temperature"),
-            ("Flight Time (s)", "drone_data.flight_time")
+            ("Connection Lost", "connection_lost"),
+            ("Error", "error"),
         ]
         for label_text, field in status_fields:
             label = QLabel(f"{label_text}: ")

@@ -15,6 +15,7 @@ class TelloConfig:
     mock_folder_path: Optional[str] = None
     debug_mode: bool = False
     debug_output_path: str = ""
+    battery_critical_threshold: float = 0.0
 
 
 class ConfigManager:
@@ -54,6 +55,7 @@ class ConfigManager:
             mock_source=tello_config.get('mock_source', 'webcam'),
             mock_folder_path=tello_config.get('mock_folder_path'),
             debug_mode=tello_config.get('debug_mode', False),
+            battery_critical_threshold=tello_config.get('battery_critical_threshold', '0.25'),
             debug_output_path=tello_config.get('rel_debug_output_path', 'debug/frames')
         )
         ConfigManager.tello_config.debug_output_path = os.path.join(ConfigManager.output_dir,

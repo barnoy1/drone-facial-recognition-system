@@ -1,11 +1,13 @@
+from datetime import datetime
+
 import numpy as np
 from PySide6.QtCore import QObject
 from typing import Callable, Dict, Any
 from app.backend.mission_manager.mission_config import MissionConfig
 from .camera_manager import  CameraManager
 from .drone_controller import DroneController
+from .telemetry_manager import TelemetryManager
 from .frame_processor import FrameProcessor
-from .connection_monitor import ConnectionMonitor
 from .callback_manager import CallbackManager
 from .timer_manager import TimerManager
 from app.core.utilities.decorators.singleton import Singleton
@@ -15,6 +17,8 @@ from app import logger
 from ..pipeline.idle_node import Idle
 from ..pipeline.launch_node import Launch
 from ..pipeline.emergency_node import Emergency
+from ...core.utilities.time_measurement import calc_duration
+
 
 @Singleton
 class MissionManager(QObject):
@@ -54,13 +58,15 @@ class MissionManager(QObject):
         self.callback_manager.register_error_callback(cb_on_error)
 
         self.drone_controller = DroneController()
+        self.telemetry_manager = TelemetryManager(self.drone_controller, self.callback_manager)
         self.camera_manager = CameraManager(self.drone_controller.tello)
         self.pipeline = Pipeline()
         self._setup_pipeline()
 
-        self.frame_processor = FrameProcessor(self.drone_controller, self.pipeline, self.camera_manager, self.callback_manager)
-        self.connection_monitor = ConnectionMonitor(self.drone_controller, self.config, self.callback_manager)
-        self.timer_manager = TimerManager(self.config, self.frame_processor, self.connection_monitor)
+        self.frame_processor = FrameProcessor(self.drone_controller, self.pipeline,
+                                              self.camera_manager, self.callback_manager,
+                                              self.telemetry_manager)
+        self.timer_manager = TimerManager(self.config, self.frame_processor, self.telemetry_manager)
 
         if self._initialize_internal():
             self.mission_state.status = MissionStatus.READY
@@ -91,9 +97,10 @@ class MissionManager(QObject):
         logger.info("Starting mission")
         self.mission_state.status = MissionStatus.RUNNING
         self.mission_state.is_running = True
-        self.mission_state.is_paused = False
         self.mission_state.error = None
-        self.mission_state.mission_time = 0.0
+        self.mission_state.mission_time_start = datetime.now()
+        self.mission_state.mission_time_current = self.mission_state.mission_time_start
+
         self.mission_state.frames_processed = 0
         self.frame_processor.reset_pipeline()
         self.timer_manager.start_timers()
@@ -141,12 +148,19 @@ class MissionManager(QObject):
     @staticmethod
     def get_detailed_status(mission_state: MissionState) -> Dict[str, Any]:
         """Get comprehensive mission status information."""
+
+        if mission_state.mission_time_start:
+            mission_time_start_str = (mission_state.mission_time_start.strftime("%Y-%m-%d %H:%M:%S.") +
+                                                f"{mission_state.mission_time_start.microsecond // 1000:03d}")
+        else:
+            mission_time_start_str = None
+
         return {
             'status': mission_state.status.value,
             'pipeline_state': mission_state.pipeline_current_node.name,
             'is_running': mission_state.is_running,
-            'is_paused': mission_state.is_paused,
-            'mission_time': mission_state.mission_time,
+            'mission_start_time': mission_time_start_str,
+            'mission_duration': calc_duration(start=mission_state.mission_time_current, end=mission_state.mission_time_start),
             'frames_processed': mission_state.frames_processed,
             'fps': round(mission_state.fps, 1),
             'detected_faces_count': len(mission_state.detected_faces),

@@ -3,6 +3,7 @@ import logging
 import numpy as np
 from typing import Optional
 
+from .telemetry_manager import TelemetryManager
 from .callback_manager import CallbackManager
 from .drone_controller import DroneController
 from app.backend.mission_manager.camera_manager import CameraManager
@@ -16,9 +17,11 @@ class FrameProcessor:
     """Manages frame processing and pipeline execution."""
 
     def __init__(self, drone_controller: DroneController, pipeline: Pipeline,
-                 camera_manager: CameraManager, callback_manager: CallbackManager):
+                 camera_manager: CameraManager, callback_manager: CallbackManager,
+                 telemetry_manager: TelemetryManager):
         self.drone_controller = drone_controller
         self.camera_manager = camera_manager
+        self.telemetry_manager = telemetry_manager
         self.pipeline = pipeline
         self.callback_manager = callback_manager
         self.frame_count = 0
@@ -33,8 +36,11 @@ class FrameProcessor:
 
         logger.info("Frame processor initialized")
 
-    def process_frame(self, mission_state: MissionState) -> bool:
+    def process_frame(self) -> bool:
         """Process the next frame through the pipeline."""
+        from app.backend import MissionManager
+        mission_manager = MissionManager.instance()
+        mission_state = mission_manager.mission_state
         if not self.camera_manager or not self.pipeline:
             return False
 
@@ -44,7 +50,7 @@ class FrameProcessor:
                 return False
 
             mission_state.frame_data = frame_data
-            mission_state.drone_data = self.drone_controller.get_telemetry()
+            self.telemetry_manager.update_telemetry(mission_state)
             self._update_frame_stats(mission_state)
             mission_state.state_has_changed_trigger = self.pipeline.process_frame(mission_state)
             self.camera_manager.add_overlay(mission_state)

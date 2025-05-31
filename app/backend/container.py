@@ -1,3 +1,4 @@
+import datetime
 from dataclasses import dataclass, field
 from enum import Enum, auto
 from typing import Optional, List, Dict, Any, Tuple
@@ -104,7 +105,6 @@ class MissionState:
     mission_time: float = 0.0
     error: Optional[str] = None
     is_running: bool = False
-    is_paused: bool = False
     frame_data: Optional[FrameData] = None
     battery_critical: bool = False
     connection_lost: bool = False
@@ -113,3 +113,6 @@ class MissionState:
     frames_processed: int = 0
     fps: float = 0.0
     state_has_changed_trigger: bool = False
+    mission_time_start: datetime.datetime = None
+    mission_time_current: datetime.datetime = None
+    mission_duration: str = "00:00:00"

@@ -4,6 +4,7 @@ tello:
   mock_folder_path: ""
   debug_mode: true
   rel_debug_output_path: "debug/frames"
+  battery_critical_threshold: 0.25
 pipeline:
   scan:
     scan_interval: 1.0
