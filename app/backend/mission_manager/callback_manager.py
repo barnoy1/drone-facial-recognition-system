@@ -1,7 +1,8 @@
 import logging
 from typing import Callable, List
 import numpy as np
-from ..container import MissionState, PipelineNodeType
+from ..container import MissionState, PipelineNodeType, DroneData
+
 logger = logging.getLogger("app_logger")
 
 class CallbackManager:
@@ -10,6 +11,7 @@ class CallbackManager:
     def __init__(self):
         self._state_changed_callbacks: List[Callable[[PipelineNodeType], None]] = []
         self._frame_updated_callbacks: List[Callable[[np.ndarray], None]] = []
+        self._telemetry_updated_callbacks: List[Callable[[MissionState], None]] = []
         self._error_callbacks: List[Callable[[str], None]] = []
 
     def register_state_callback(self, callback: Callable[[PipelineNodeType], None]) -> None:
@@ -22,10 +24,28 @@ class CallbackManager:
         self._frame_updated_callbacks.append(callback)
         logger.debug(f"Frame callback registered. Total callbacks: {len(self._frame_updated_callbacks)}")
 
+    def register_telemetry_callback(self, callback: Callable[[DroneData], None]) -> None:
+        """Register callback for frame updates."""
+        self._telemetry_updated_callbacks.append(callback)
+        logger.debug(f"Frame callback registered. Total callbacks: {len(self._telemetry_updated_callbacks)}")
+
+
     def register_error_callback(self, callback: Callable[[str], None]) -> None:
         """Register callback for error notifications."""
         self._error_callbacks.append(callback)
         logger.debug(f"Error callback registered. Total callbacks: {len(self._error_callbacks)}")
+
+    def notify_telemetry_update(self, mission_state: MissionState) -> None:
+        """Notify all registered state callbacks."""
+        try:
+            for callback in self._telemetry_updated_callbacks:
+                try:
+                    callback(mission_state)
+                except Exception as e:
+                    logger.error(f"Error in state callback: {str(e)}")
+        except Exception as e:
+            logger.error(f"Error notifying state update: {str(e)}")
+
 
     def notify_state_update(self, mission_state: MissionState) -> None:
         """Notify all registered state callbacks."""

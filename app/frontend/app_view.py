@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, Signal, QTimer, QPropertyAnimation, QEasingCurve, Property
 from PySide6.QtGui import QImage, QPixmap, QPainter, QPen, QBrush, QColor
 import numpy as np
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 
 from app.backend.container import MissionState
 from app.backend.pipeline.pipeline import PipelineNodeType
@@ -15,24 +15,21 @@ class RippleLabel(QLabel):
 
     def __init__(self, text: str, parent=None):
         super().__init__(text, parent)
-        self._ripple_offset = 0  # Distance from label's contour
-        self._max_ripple_offset = 15  # Minimum 15px expansion
-        self._ripple_opacity = 255  # Opacity of the ripple
+        self._ripple_offset = 0
+        self._max_ripple_offset = 15
+        self._ripple_opacity = 255
         self._is_active = False
 
-        # Setup ripple animation for offset
         self.offset_animation = QPropertyAnimation(self, b"ripple_offset")
         self.offset_animation.setDuration(1500)
-        self.offset_animation.setEasingCurve(QEasingCurve.Type.OutQuad)  # Smooth water-like expansion
+        self.offset_animation.setEasingCurve(QEasingCurve.Type.OutQuad)
         self.offset_animation.finished.connect(self._restart_animation)
 
-        # Setup ripple animation for opacity
         self.opacity_animation = QPropertyAnimation(self, b"ripple_opacity")
         self.opacity_animation.setDuration(1500)
         self.opacity_animation.setEasingCurve(QEasingCurve.Type.Linear)
         self.opacity_animation.finished.connect(self._restart_animation)
 
-        # Pulser timer for continuous repaints
         self.pulse_timer = QTimer(self)
         self.pulse_timer.timeout.connect(self.update)
 
@@ -55,34 +52,27 @@ class RippleLabel(QLabel):
         self.update()
 
     def set_active(self, active: bool):
-        """Set the active state and start/stop ripple animation."""
         if self._is_active == active:
             return
         self._is_active = active
         if active:
             self._start_ripple_animation()
-            self.pulse_timer.start(16)  # ~60 FPS for smooth animation
+            self.pulse_timer.start(16)
         else:
             self._stop_ripple_animation()
             self.pulse_timer.stop()
 
     def _start_ripple_animation(self):
-        """Start the ripple animation for offset and opacity."""
         self.offset_animation.stop()
         self.opacity_animation.stop()
-
-        # Animate offset from 0 to max_ripple_offset
         self.offset_animation.setStartValue(0)
         self.offset_animation.setEndValue(self._max_ripple_offset)
         self.offset_animation.start()
-
-        # Animate opacity from 255 to 50
         self.opacity_animation.setStartValue(255)
         self.opacity_animation.setEndValue(50)
         self.opacity_animation.start()
 
     def _stop_ripple_animation(self):
-        """Stop the ripple animation and reset effect."""
         self.offset_animation.stop()
         self.opacity_animation.stop()
         self._ripple_offset = 0
@@ -90,33 +80,23 @@ class RippleLabel(QLabel):
         self.update()
 
     def _restart_animation(self):
-        """Restart the ripple animation if active."""
         if self._is_active:
             self._start_ripple_animation()
 
     def paintEvent(self, event):
-        """Draw a rectangular ripple around the label's contour."""
-        super().paintEvent(event)  # Draw the label's text and background
-
+        super().paintEvent(event)
         if not self._is_active or self._ripple_offset <= 0:
             return
-
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        # Define the ripple rectangle, expanding from the label's contour
         ripple_rect = self.rect().adjusted(
             -self._ripple_offset, -self._ripple_offset,
             self._ripple_offset, self._ripple_offset
         )
-
-        # Set up the pen for a sharp, water-like ripple
-        pen = QPen(QColor(33, 150, 243, self._ripple_opacity), 2)  # Thin, sharp ring
+        pen = QPen(QColor(33, 150, 243, self._ripple_opacity), 2)
         painter.setPen(pen)
-        painter.setBrush(Qt.NoBrush)  # No fill to keep text visible
-
-        # Draw the rectangular ripple with rounded corners to match label
-        painter.drawRoundedRect(ripple_rect, 18, 18)  # Match label's border-radius
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(ripple_rect, 18, 18)
 
 class PipelineNode(QWidget):
     """Enhanced pipeline node with connection lines and status indicators."""
@@ -124,12 +104,11 @@ class PipelineNode(QWidget):
     def __init__(self, text: str, is_last: bool = False):
         super().__init__()
         self.is_last = is_last
-        self.status = "pending"  # pending, active, completed, error
+        self.status = "pending"
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(10, 10, 10, 10)  # Margins for ripple visibility
+        layout.setContentsMargins(10, 10, 10, 10)
 
-        # Create ripple label
         self.label = RippleLabel(text)
         self.label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._update_style()
@@ -137,13 +116,11 @@ class PipelineNode(QWidget):
         layout.addWidget(self.label)
 
     def set_status(self, status: str):
-        """Set node status: pending, active, completed, error."""
         self.status = status
         self._update_style()
         self.label.set_active(status == "active")
 
     def _update_style(self):
-        """Update node styling based on status."""
         styles = {
             "pending": """
                 QLabel {
@@ -195,16 +172,14 @@ class PipelineNode(QWidget):
             """
         }
         self.label.setStyleSheet(styles.get(self.status, styles["pending"]))
-
-        # Adjust shadow effect based on status
         shadow = QGraphicsDropShadowEffect()
         shadow.setBlurRadius(10)
         shadow.setOffset(2, 2)
         if self.status == "active":
-            shadow.setColor(QColor(33, 150, 243, 100))  # Blue shadow for active state
-            shadow.setBlurRadius(15)  # Slightly larger blur for emphasis
+            shadow.setColor(QColor(33, 150, 243, 100))
+            shadow.setBlurRadius(15)
         else:
-            shadow.setColor(QColor(0, 0, 0, 50))  # Default shadow
+            shadow.setColor(QColor(0, 0, 0, 50))
         self.label.setGraphicsEffect(shadow)
 
 class ConnectionLine(QWidget):
@@ -216,20 +191,13 @@ class ConnectionLine(QWidget):
         self.setFixedSize(30, 4)
 
     def set_active(self, active: bool):
-        """Set line active state."""
         self.is_active = active
         self.update()
 
     def paintEvent(self, event):
-        """Draw connection line."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-
-        if self.is_active:
-            pen = QPen(QColor(76, 175, 80), 3)  # Green for completed connection
-        else:
-            pen = QPen(QColor(69, 90, 100), 2)  # Gray for pending connection
-
+        pen = QPen(QColor(76, 175, 80) if self.is_active else QColor(69, 90, 100), 3 if self.is_active else 2)
         painter.setPen(pen)
         painter.drawLine(0, 2, 30, 2)
 
@@ -252,6 +220,9 @@ class AppView(QMainWindow):
         main_layout = QVBoxLayout(main_widget)
         main_layout.setSpacing(20)
 
+        # Horizontal layout for stream and status panel
+        display_layout = QHBoxLayout()
+
         # Stream display
         self.stream_label = QLabel()
         self.stream_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -263,9 +234,65 @@ class AppView(QMainWindow):
                 border-radius: 8px;
             }
         """)
-        main_layout.addWidget(self.stream_label)
+        display_layout.addWidget(self.stream_label)
 
-        # Pipeline display with enhanced styling
+        # Status panel
+        self.status_panel = QWidget()
+        self.status_panel.setStyleSheet("""
+            QWidget {
+                background-color: #1e1e1e;
+                border: 1px solid #37474f;
+                border-radius: 8px;
+                padding: 10px;
+            }
+        """)
+        status_layout = QVBoxLayout(self.status_panel)
+        status_layout.setSpacing(10)
+        status_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+
+        # Status labels
+        self.status_labels = {}
+        status_fields = [
+            ("Pipeline State", "pipeline_state"),
+            ("Mission Time (s)", "mission_time"),
+            ("Frames Processed", "frames_processed"),
+            ("FPS", "fps"),
+            ("Detected Faces", "detected_faces_count"),
+            ("Error", "error"),
+            ("Battery Critical", "battery_critical"),
+            ("Connection Lost", "connection_lost"),
+            ("Initialization Complete", "initialization_complete"),
+            ("Battery (%)", "drone_data.battery"),
+            ("Height (cm)", "drone_data.height"),
+            ("Temperature (°C)", "drone_data.temperature"),
+            ("Flight Time (s)", "drone_data.flight_time")
+        ]
+        for label_text, field in status_fields:
+            label = QLabel(f"{label_text}: ")
+            label.setStyleSheet("""
+                QLabel {
+                    color: #b0bec5;
+                    font-size: 12px;
+                    font-family: 'Courier New', monospace;
+                }
+            """)
+            value_label = QLabel("N/A")
+            value_label.setStyleSheet("""
+                QLabel {
+                    color: #ffffff;
+                    font-size: 12px;
+                    font-family: 'Courier New', monospace;
+                }
+            """)
+            self.status_labels[field] = value_label
+            status_row = QHBoxLayout()
+            status_row.addWidget(label)
+            status_row.addWidget(value_label)
+            status_layout.addLayout(status_row)
+        display_layout.addWidget(self.status_panel)
+        main_layout.addLayout(display_layout)
+
+        # Pipeline display
         pipeline_container = QWidget()
         pipeline_container.setStyleSheet("""
             QWidget {
@@ -278,34 +305,27 @@ class AppView(QMainWindow):
         pipeline_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         pipeline_layout.setSpacing(0)
 
-        # Create pipeline nodes and connections
         self.pipeline_nodes: List[PipelineNode] = []
         self.connection_lines: List[ConnectionLine] = []
 
-        node_names = [PipelineNodeType.IDLE,
-                      PipelineNodeType.LAUNCH, PipelineNodeType.SCAN,
-                      PipelineNodeType.IDENTIFY, PipelineNodeType.TRACK,
-                      PipelineNodeType.RETURN]
-
+        node_names = [
+            PipelineNodeType.IDLE, PipelineNodeType.LAUNCH, PipelineNodeType.SCAN,
+            PipelineNodeType.IDENTIFY, PipelineNodeType.TRACK, PipelineNodeType.RETURN
+        ]
         for i, state in enumerate(node_names):
-            # Create node
             is_last = i == len(node_names) - 1
             node = PipelineNode(state.name, is_last)
             self.pipeline_nodes.append(node)
             pipeline_layout.addWidget(node)
-
-            # Add connection line if not last node
             if not is_last:
                 line = ConnectionLine()
                 self.connection_lines.append(line)
                 pipeline_layout.addWidget(line)
-
         main_layout.addWidget(pipeline_container)
 
-        # Controls with enhanced styling
+        # Controls
         controls_widget = QWidget()
         controls_layout = QHBoxLayout(controls_widget)
-
         self.start_button = QPushButton("🚀 Start Mission")
         self.start_button.setStyleSheet("""
             QPushButton {
@@ -324,7 +344,6 @@ class AppView(QMainWindow):
                 background-color: #666666;
             }
         """)
-
         self.emergency_button = QPushButton("🛑 Emergency Stop")
         self.emergency_button.setStyleSheet("""
             QPushButton {
@@ -340,13 +359,12 @@ class AppView(QMainWindow):
                 background-color: #da190b;
             }
         """)
-
         controls_layout.addWidget(self.start_button)
         controls_layout.addWidget(self.emergency_button)
         controls_layout.addStretch()
         main_layout.addWidget(controls_widget)
 
-        # Mission log with enhanced styling
+        # Mission log
         self.log_text = QTextEdit()
         self.log_text.setReadOnly(True)
         self.log_text.setMaximumHeight(120)
@@ -367,7 +385,7 @@ class AppView(QMainWindow):
         self.start_button.clicked.connect(self.start_mission.emit)
         self.emergency_button.clicked.connect(self.emergency_stop.emit)
 
-        # Set dark theme for main window
+        # Set dark theme
         self.setStyleSheet("""
             QMainWindow {
                 background-color: #121212;
@@ -382,15 +400,13 @@ class AppView(QMainWindow):
         qimg = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
         self.stream_label.setPixmap(QPixmap.fromImage(qimg))
 
-    def update_pipeline_state(self, mission_state: MissionState) -> None:
+    def update_pipeline_state(self, state: PipelineNodeType) -> None:
         """Update pipeline state visualization with ripple effects."""
-        # Find the current node index
         for i, node in enumerate(self.pipeline_nodes):
-            if node.label.text() == mission_state.pipeline_current_node.node.name:
+            node_name = node.label.text()
+            if node_name == state.pipeline_current_node.name.upper():
                 self.current_node_index = i
                 break
-
-        # Update all nodes based on current state
         for i, node in enumerate(self.pipeline_nodes):
             if i < self.current_node_index:
                 node.set_status("completed")
@@ -398,10 +414,18 @@ class AppView(QMainWindow):
                 node.set_status("active")
             else:
                 node.set_status("pending")
-
-        # Update connection lines
         for i, line in enumerate(self.connection_lines):
             line.set_active(i < self.current_node_index)
+
+    def update_telemetry_panel(self, mission_state: Dict[str, Any]) -> None:
+        """Update the status panel with mission status data."""
+        for field, label in self.status_labels.items():
+            if field.startswith("drone_data."):
+                subfield = field.split(".")[1]
+                value = mission_state.get("drone_data", {}).get(subfield, "N/A") if mission_state.get("drone_data") else "N/A"
+            else:
+                value = mission_state.get(field, "N/A")
+            label.setText(str(value))
 
     def set_node_error(self, state: PipelineNodeType) -> None:
         """Set a specific node to error state."""

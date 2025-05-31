@@ -31,7 +31,10 @@ class ConnectionMonitor:
                     logger.info("Connection restored")
                 self.connection_check_failures = 0
                 mission_state.connection_lost = False
-            self.callback_manager.notify_state_update(mission_state)
+
+            if mission_state.connection_lost == False:
+                self.update_telemetry(mission_state)
+            self.callback_manager.notify_telemetry_update(mission_state)
         except Exception as e:
             logger.error(f"Connection check error: {str(e)}")
             self.connection_check_failures += 1
@@ -45,7 +48,6 @@ class ConnectionMonitor:
             battery_level = telemetry_data.battery
             if battery_level <= self.config.battery_critical_threshold:
                 if not mission_state.battery_critical:
-                    logger.warning(f"Battery level critical: {battery_level}%")
                     mission_state.battery_critical = True
             else:
                 mission_state.battery_critical = False

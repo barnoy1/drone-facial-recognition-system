@@ -10,7 +10,7 @@ from .callback_manager import CallbackManager
 from .timer_manager import TimerManager
 from app.core.utilities.decorators.singleton import Singleton
 from .. pipeline.pipeline import Pipeline
-from ..container import MissionState, MissionStatus, PipelineNodeType
+from ..container import MissionState, MissionStatus, PipelineNodeType, DroneData
 from app import logger
 from ..pipeline.idle_node import Idle
 from ..pipeline.launch_node import Launch
@@ -40,6 +40,7 @@ class MissionManager(QObject):
                    cb_on_state_changed: Callable[[PipelineNodeType], None],
                    cb_on_update_pipeline_state: Callable[[PipelineNodeType], None],
                    cb_on_frame_updated: Callable[[np.ndarray], None],
+                   cb_on_telemetry_updated: Callable[[MissionState], None],
                    cb_on_error: Callable[[str], None]) -> None:
         """Initialize the mission manager and its components."""
         logger.info("MissionManager initializing...")
@@ -49,6 +50,7 @@ class MissionManager(QObject):
         self.callback_manager.register_state_callback(cb_on_state_changed)
         self.callback_manager.register_state_callback(cb_on_update_pipeline_state)
         self.callback_manager.register_frame_callback(cb_on_frame_updated)
+        self.callback_manager.register_telemetry_callback(cb_on_telemetry_updated)
         self.callback_manager.register_error_callback(cb_on_error)
 
         self.drone_controller = DroneController()
@@ -136,21 +138,21 @@ class MissionManager(QObject):
 
         logger.info("Pipeline nodes registered successfully")
 
-
-    def get_detailed_status(self) -> Dict[str, Any]:
+    @staticmethod
+    def get_detailed_status(mission_state: MissionState) -> Dict[str, Any]:
         """Get comprehensive mission status information."""
         return {
-            'status': self.mission_state.status.value,
-            'pipeline_state': self.mission_state.pipeline_state.name if self.mission_state.pipeline_state else 'UNKNOWN',
-            'is_running': self.mission_state.is_running,
-            'is_paused': self.mission_state.is_paused,
-            'mission_time': self.mission_state.mission_time,
-            'frames_processed': self.mission_state.frames_processed,
-            'fps': round(self.mission_state.fps, 1),
-            'detected_faces_count': len(self.mission_state.detected_faces),
-            'error': self.mission_state.error,
-            'battery_critical': self.mission_state.battery_critical,
-            'connection_lost': self.mission_state.connection_lost,
-            'initialization_complete': self.mission_state.initialization_complete,
-            'drone_data': self.mission_state.drone_data.__dict__ if self.mission_state.drone_data else None
+            'status': mission_state.status.value,
+            'pipeline_state': mission_state.pipeline_current_node.name,
+            'is_running': mission_state.is_running,
+            'is_paused': mission_state.is_paused,
+            'mission_time': mission_state.mission_time,
+            'frames_processed': mission_state.frames_processed,
+            'fps': round(mission_state.fps, 1),
+            'detected_faces_count': len(mission_state.detected_faces),
+            'error': mission_state.error,
+            'battery_critical': mission_state.battery_critical,
+            'connection_lost': mission_state.connection_lost,
+            'initialization_complete': mission_state.initialization_complete,
+            'drone_data': mission_state.drone_data.__dict__ if mission_state.drone_data else None
         }

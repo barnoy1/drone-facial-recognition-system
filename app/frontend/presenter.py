@@ -3,7 +3,7 @@ import numpy as np
 
 from app import logger
 from app.backend import MissionManager
-from app.backend.container import MissionState, PipelineNodeType
+from app.backend.container import MissionState, PipelineNodeType, DroneData
 from app.frontend.app_view import AppView
 
 class Presenter:
@@ -17,7 +17,8 @@ class Presenter:
             cb_on_state_changed=self._on_state_changed,
             cb_on_update_pipeline_state=self._on_state_changed,  # Use same callback for pipeline state
             cb_on_frame_updated=self._on_frame_updated,
-            cb_on_error=self._on_error
+            cb_on_error=self._on_error,
+            cb_on_telemetry_updated=self._on_telemetry_updated
         )
 
 
@@ -67,6 +68,10 @@ class Presenter:
     def _on_frame_updated(self, frame: np.ndarray) -> None:
         """Handle frame updates."""
         self.view.update_frame(frame)
+
+    def _on_telemetry_updated(self, mission_state: MissionState) -> None:
+        mission_state_status_dict = self.mission_manager.get_detailed_status(mission_state)
+        self.view.update_telemetry_panel(mission_state_status_dict)
 
     def _on_error(self, error: str) -> None:
         """Handle errors."""
