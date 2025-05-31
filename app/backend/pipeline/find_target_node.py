@@ -14,7 +14,7 @@ class FindTarget(PipelineNode):
     def __init__(self, tello: TelloDevice):
         super().__init__(tello)
         self.node = PipelineNodeType.FIND_TARGET
-        self.name = __class__.__name__
+        self.name = PipelineNodeType.FIND_TARGET.value
     def process(self, mission_state: MissionState, nodes: Dict, current_node: PipelineNode) -> PipelineNode:
         try:
             if self.is_done():

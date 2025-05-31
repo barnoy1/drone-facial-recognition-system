@@ -12,7 +12,7 @@ class Emergency(PipelineNode):
     def __init__(self, tello: TelloDevice):
         super().__init__(tello)
         self.node = PipelineNodeType.EMERGENCY_STOP
-        self.name = __class__.__name__
+        self.name = PipelineNodeType.EMERGENCY_STOP.value
 
     def process(self, mission_state: MissionState, nodes: Dict, current_node: PipelineNode) -> PipelineNode:
         try:

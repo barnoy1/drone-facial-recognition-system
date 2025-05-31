@@ -425,14 +425,27 @@ class AppView(QMainWindow):
             line.set_active(i < self.current_node_index)
 
     def update_telemetry_panel(self, mission_state: Dict[str, Any]) -> None:
-        """Update the status panel with mission status data."""
+        """Update the status panel with mission status data and sync pipeline nodes."""
         for field, label in self.status_labels.items():
             if field.startswith("drone_data."):
                 subfield = field.split(".")[1]
-                value = mission_state.get("drone_data", {}).get(subfield, "N/A") if mission_state.get("drone_data") else "N/A"
+                value = mission_state.get("drone_data", {}).get(subfield, "N/A") if mission_state.get(
+                    "drone_data") else "N/A"
             else:
                 value = mission_state.get(field, "N/A")
             label.setText(str(value))
+
+        # Synchronize pipeline nodes with pipeline_state
+        pipeline_state = mission_state.get("pipeline_state", None)
+        if pipeline_state:
+            try:
+                # Map string to PipelineNodeType
+                state_enum = PipelineNodeType[pipeline_state.upper()]
+                self.update_pipeline_state(state_enum)
+            except KeyError:
+                # Handle invalid pipeline_state
+                self.log_message(f"Warning: Invalid pipeline state '{pipeline_state}' received.")
+                self.reset_pipeline()  # Reset pipeline if state is invalid
 
     def set_node_error(self, state: PipelineNodeType) -> None:
         """Set a specific node to error state."""

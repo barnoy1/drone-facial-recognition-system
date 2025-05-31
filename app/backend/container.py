@@ -58,15 +58,15 @@ class PipelineState(Enum):
 
 
 class PipelineNodeType(Enum):
-    EMERGENCY_STOP = auto()
-    IDLE = auto()
-    LAUNCH = auto()
-    FIND_TARGET = auto()
-    DETECT_FACE = auto()
-    IDENTIFY_FACE = auto()
-    TRACK_TARGET = auto()
-    FIND_HOME = auto()
-    LAND = auto()
+    EMERGENCY_STOP = "EMERGENCY_STOP"
+    IDLE = "IDLE"
+    LAUNCH = "LAUNCH"
+    FIND_TARGET = "FIND_TARGET"
+    DETECT_FACE = "DETECT_FACE"
+    IDENTIFY_FACE = "IDENTIFY_FACE"
+    TRACK_TARGET = "TRACK_TARGET"
+    FIND_HOME = "FIND_HOME"
+    LAND = "LAND"
 
 
 class MissionStatus(Enum):
