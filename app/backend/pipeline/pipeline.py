@@ -62,10 +62,14 @@ class Pipeline:
             if self.current_node.is_done() and next_node is not None:
                 # Node is complete, transition to next state
                 if self.current_node != next_node:
-                    self.current_node = next_node
-                    logger.info(f"Transitioned from: [{self.current_node}] to [{next_node}]")
+                    logger.info(f"Transitioned from: [{self.current_node.name}] to [{next_node.name}]")
+                    # Update mission state
+                    mission_state.pipeline_previous_node = self.current_node
+                    mission_state.pipeline_current_node = next_node
+
                     # Update mission state with pipeline state
-                    mission_state.pipeline_current_node = self.current_node
+                    self.current_node = next_node
+
                     return True
 
             return False
