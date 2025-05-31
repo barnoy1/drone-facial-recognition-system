@@ -21,6 +21,7 @@ class Emergency(PipelineNode):
                 from app.backend import Launch
                 current_node = nodes.get(PipelineNodeType.IDLE)
                 mission_state.status = MissionStatus.READY
+                current_node.state = PipelineState.PENDING
                 return current_node
             else:
                 if not self.tello.is_connected or mission_state.frame_data is None:
