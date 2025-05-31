@@ -9,6 +9,17 @@ from app.core.utilities.json import pretty_print_dict
 
 
 @dataclass
+class PipelineConfig:
+    skip_launch_node: bool = False
+    skip_find_target_node: bool = False
+    skip_detect_face_node: bool = False
+    skip_identify_face_node: bool = False
+    skip_track_target_node: bool = False
+    skip_find_home_node: bool = False
+    skip_land_node: bool = False
+
+
+@dataclass
 class TelloConfig:
     mock_enabled: bool = False
     mock_source: str = ""  # "webcam" or "folder"
@@ -48,6 +59,7 @@ class ConfigManager:
 
         # Parse Tello configuration
         tello_config = ConfigManager.config.get('tello', {})
+        pipeline_config = ConfigManager.config.get('pipeline', {})
         logger.info(pretty_print_dict('Tello config from file', tello_config))
 
         ConfigManager.tello_config = TelloConfig(
@@ -58,6 +70,17 @@ class ConfigManager:
             battery_critical_threshold=tello_config.get('battery_critical_threshold', '0.25'),
             debug_output_path=tello_config.get('rel_debug_output_path', 'debug/frames')
         )
+
+        ConfigManager.pipeline_config = PipelineConfig(
+            skip_launch_node=pipeline_config.get('skip_launch_node', False),
+            skip_find_target_node=pipeline_config.get('skip_find_target_node', False),
+            skip_detect_face_node=pipeline_config.get('skip_detect_face_node', False),
+            skip_identify_face_node=pipeline_config.get('skip_identify_face_node', False),
+            skip_track_target_node=pipeline_config.get('skip_track_target_node', False),
+            skip_find_home_node=pipeline_config.get('skip_find_home_node', False),
+            skip_land_node=pipeline_config.get('skip_land_node', False)
+        )
+
         ConfigManager.tello_config.debug_output_path = os.path.join(ConfigManager.output_dir,
                                                                     ConfigManager.tello_config.debug_output_path)
 

@@ -10,16 +10,16 @@ from .pipeline import PipelineNode, PipelineState, PipelineNodeType
 from app.core.face.inference import process_image  # Import face detection function
 from ... import logger
 
-class Launch(PipelineNode):
+class FindTarget(PipelineNode):
     def __init__(self, tello: TelloDevice):
         super().__init__(tello)
-        self.node = PipelineNodeType.LAUNCH
+        self.node = PipelineNodeType.FIND_TARGET
         self.name = __class__.__name__
     def process(self, mission_state: MissionState, nodes: Dict, current_node: PipelineNode) -> PipelineNode:
         try:
             if self.is_done():
-                from app.backend import FindTarget
-                current_node = nodes.get(PipelineNodeType.FIND_TARGET)
+                from app.backend import Detect
+                current_node = nodes.get(PipelineNodeType.DETECT_FACE)
                 mission_state.status = MissionStatus.RUNNING
                 return current_node
             else:
@@ -29,8 +29,8 @@ class Launch(PipelineNode):
                     mission_state.status = MissionStatus.ERROR
 
                 # debugging (skip this state)
-                if ConfigManager.pipeline_config.skip_launch_node:
-                    current_node = nodes.get(PipelineNodeType.FIND_TARGET)
+                if ConfigManager.pipeline_config.skip_find_target_node:
+                    current_node = nodes.get(PipelineNodeType.DETECT_FACE)
                     self.state = PipelineState.SKIPPED
                     sleep(1)
                     return current_node

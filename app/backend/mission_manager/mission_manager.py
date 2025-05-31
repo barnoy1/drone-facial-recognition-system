@@ -11,12 +11,18 @@ from .frame_processor import FrameProcessor
 from .callback_manager import CallbackManager
 from .timer_manager import TimerManager
 from app.core.utilities.decorators.singleton import Singleton
+from ..pipeline.detect_face_node import DetectFace
+from ..pipeline.find_home_node import FindHome
+from ..pipeline.find_target_node import FindTarget
+from ..pipeline.identify_face_node import IdentifyFace
+from ..pipeline.land_node import Land
 from .. pipeline.pipeline import Pipeline
 from ..container import MissionState, MissionStatus, PipelineNodeType, DroneData
 from app import logger
 from ..pipeline.idle_node import Idle
 from ..pipeline.launch_node import Launch
 from ..pipeline.emergency_node import Emergency
+from ..pipeline.track_target_node import TrackTarget
 from ...core.utilities.time_measurement import calc_duration
 
 
@@ -87,7 +93,7 @@ class MissionManager(QObject):
 
     def start_mission(self) -> None:
         """Start the mission."""
-        if self.mission_state.status not in [MissionStatus.READY, MissionStatus.PAUSED]:
+        if self.mission_state.status not in [MissionStatus.READY]:
             logger.warning(f"Cannot start mission from status: {self.mission_state.status}")
             return
         if not self.mission_state.initialization_complete:
@@ -137,9 +143,18 @@ class MissionManager(QObject):
         """Set up the processing pipeline with all nodes."""
         if not self.pipeline or not self.drone_controller.tello:
             raise RuntimeError("Pipeline or Tello device not available")
+
         self.pipeline.register_node(PipelineNodeType.EMERGENCY_STOP, Emergency(self.drone_controller.tello))
         self.pipeline.register_node(PipelineNodeType.IDLE, Idle(self.drone_controller.tello))
         self.pipeline.register_node(PipelineNodeType.LAUNCH, Launch(self.drone_controller.tello))
+        self.pipeline.register_node(PipelineNodeType.FIND_TARGET, FindTarget(self.drone_controller.tello))
+        self.pipeline.register_node(PipelineNodeType.DETECT_FACE, DetectFace(self.drone_controller.tello))
+        self.pipeline.register_node(PipelineNodeType.IDENTIFY_FACE, IdentifyFace(self.drone_controller.tello))
+        self.pipeline.register_node(PipelineNodeType.TRACK_TARGET, TrackTarget(self.drone_controller.tello))
+        self.pipeline.register_node(PipelineNodeType.FIND_HOME, FindHome(self.drone_controller.tello))
+        self.pipeline.register_node(PipelineNodeType.LAND, Land(self.drone_controller.tello))
+
+
         self.pipeline.current_node = self.pipeline.nodes[PipelineNodeType.IDLE]
         self.mission_state.pipeline_current_node = self.pipeline.current_node
 

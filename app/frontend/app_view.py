@@ -308,9 +308,16 @@ class AppView(QMainWindow):
         self.pipeline_nodes: List[PipelineNode] = []
         self.connection_lines: List[ConnectionLine] = []
 
+
         node_names = [
-            PipelineNodeType.IDLE, PipelineNodeType.LAUNCH, PipelineNodeType.SCAN,
-            PipelineNodeType.IDENTIFY, PipelineNodeType.TRACK, PipelineNodeType.RETURN
+            PipelineNodeType.IDLE,
+            PipelineNodeType.LAUNCH,
+            PipelineNodeType.FIND_TARGET,
+            PipelineNodeType.DETECT_FACE,
+            PipelineNodeType.IDENTIFY_FACE,
+            PipelineNodeType.TRACK_TARGET,
+            PipelineNodeType.FIND_HOME,
+            PipelineNodeType.LAND
         ]
         for i, state in enumerate(node_names):
             is_last = i == len(node_names) - 1

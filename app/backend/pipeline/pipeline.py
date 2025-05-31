@@ -27,7 +27,7 @@ class PipelineNode(ABC):
         pass
 
     def is_done(self) -> bool:
-        return self.state in (PipelineState.COMPLETED, PipelineState.FAILED)
+        return self.state in (PipelineState.COMPLETED, PipelineState.FAILED, PipelineState.SKIPPED)
 
 
 class Pipeline:

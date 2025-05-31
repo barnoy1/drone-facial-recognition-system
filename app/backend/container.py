@@ -61,11 +61,12 @@ class PipelineNodeType(Enum):
     EMERGENCY_STOP = auto()
     IDLE = auto()
     LAUNCH = auto()
-    SCAN = auto()
-    IDENTIFY = auto()
-    TRACK = auto()
-    RETURN = auto()
-    END_MISSION = auto()
+    FIND_TARGET = auto()
+    DETECT_FACE = auto()
+    IDENTIFY_FACE = auto()
+    TRACK_TARGET = auto()
+    FIND_HOME = auto()
+    LAND = auto()
 
 
 class MissionStatus(Enum):
@@ -73,8 +74,7 @@ class MissionStatus(Enum):
     NOT_INITIALIZED = "not_initialized"
     READY = "ready"
     RUNNING = "running"
-    PAUSED = "paused"
-    COMPLETED = "completed"
+    SUCCESS = "success"
     ERROR = "error"
     EMERGENCY_STOPPED = "emergency_stopped"
 
