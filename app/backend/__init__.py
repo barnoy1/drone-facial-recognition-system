@@ -13,6 +13,7 @@ from .mission_manager import MissionManager
 from .pipeline.idle_node import Idle
 from .pipeline.launch_node import Launch
 from .pipeline.pipeline import Pipeline, PipelineNodeType
+
 # from .pipeline.nodes import  ScanNode, IdentifyNode, TrackNode, ReturnNode
 
 __all__ = [

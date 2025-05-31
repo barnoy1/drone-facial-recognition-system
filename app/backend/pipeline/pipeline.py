@@ -4,9 +4,8 @@ from typing import Optional, Dict, Any
 from enum import Enum, auto
 
 from app import logger
-from app.backend.container import PipelineNodeType, PipelineState
+from app.backend.container import PipelineNodeType, PipelineState, MissionState
 from app.backend.devices.tello import TelloDevice
-from app.backend.mission_manager import MissionState
 
 
 class PipelineNode(ABC):
@@ -31,10 +30,6 @@ class PipelineNode(ABC):
         return self.state in (PipelineState.COMPLETED, PipelineState.FAILED)
 
 
-class PipelineStage:
-    pass
-
-
 class Pipeline:
     """Main pipeline manager."""
 
@@ -50,8 +45,8 @@ class Pipeline:
     def process_frame(self, mission_state: MissionState) -> bool:
         """Process a frame through the current pipeline node."""
 
+        mission_state.pipeline_current_node = self.current_node
         if not self.current_node:
-            self.current_node = PipelineStage
             return f"No node registered for state: {self.current_node}"
 
         try:

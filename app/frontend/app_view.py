@@ -7,6 +7,7 @@ from PySide6.QtGui import QImage, QPixmap, QPainter, QPen, QBrush, QColor
 import numpy as np
 from typing import List, Optional
 
+from app.backend.container import MissionState
 from app.backend.pipeline.pipeline import PipelineNodeType
 
 class RippleLabel(QLabel):
@@ -381,11 +382,11 @@ class AppView(QMainWindow):
         qimg = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
         self.stream_label.setPixmap(QPixmap.fromImage(qimg))
 
-    def update_pipeline_state(self, state: PipelineNodeType) -> None:
+    def update_pipeline_state(self, mission_state: MissionState) -> None:
         """Update pipeline state visualization with ripple effects."""
         # Find the current node index
         for i, node in enumerate(self.pipeline_nodes):
-            if node.label.text() == state.pipeline_current_node.node.name:
+            if node.label.text() == mission_state.pipeline_current_node.node.name:
                 self.current_node_index = i
                 break
 

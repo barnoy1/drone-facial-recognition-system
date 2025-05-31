@@ -97,8 +97,8 @@ class DroneData:
 class MissionState:
     """Current state of the mission."""
     status: MissionStatus = MissionStatus.NOT_INITIALIZED
-    pipeline_current_node: PipelineNodeType = PipelineNodeType.IDLE
-    pipeline_previous_node: PipelineNodeType = PipelineNodeType.IDLE
+    pipeline_current_node: PipelineNodeType = None
+    pipeline_previous_node: PipelineNodeType = None
     drone_data: Optional[DroneData] = None
     detected_faces: List[Dict[str, Any]] = field(default_factory=list)
     mission_time: float = 0.0

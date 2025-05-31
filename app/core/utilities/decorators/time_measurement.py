@@ -1,6 +1,6 @@
 import time
 
-from app.backend.camera_manager import logger
+from app.backend.mission_manager.camera_manager import logger
 
 
 def timing_decorator(func):

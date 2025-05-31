@@ -1,11 +1,10 @@
 import numpy as np
 from typing import Dict, Any
 
-from ..container import MissionStatus
+from ..container import MissionStatus, MissionState
 from ..devices.tello import TelloDevice
 from .pipeline import PipelineNode, PipelineState, PipelineNodeType
 from app.core.face.inference import process_image  # Import face detection function
-from ..mission_manager import MissionState
 from ... import logger
 
 

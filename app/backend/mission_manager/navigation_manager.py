@@ -4,9 +4,9 @@ from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 import logging
 
-from .container import FrameData, DroneData
-from .devices.tello import TelloDevice
-from .. import logger
+from app.backend.container import FrameData, DroneData
+from app.backend.devices.tello import TelloDevice
+logger = logging.getLogger("app_logger")
 
 
 class NavigationManager:

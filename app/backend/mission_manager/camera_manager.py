@@ -4,9 +4,9 @@ from typing import Optional, Dict, Any, Tuple
 from dataclasses import dataclass
 import logging
 
-from .container import FrameData, HUD, MissionState
-from .devices.tello import TelloDevice
-from .. import logger
+from app.backend.container import FrameData, HUD, MissionState
+from app.backend.devices.tello import TelloDevice
+logger = logging.getLogger("app_logger")
 from PIL import Image, ImageDraw, ImageFont
 
 
