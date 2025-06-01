@@ -16,4 +16,4 @@ pipeline:
 
 face:
   embeddings_file: '/home/ron/repo/projects/drone-facial-recognition-system/app/core/face/dataset/lfw_dataset/embeddings.npy'
-  similarity_threshold: 0.3
+  similarity_threshold: 0.8

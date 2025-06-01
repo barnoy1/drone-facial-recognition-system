@@ -82,14 +82,13 @@ class CameraManager:
 
         # Convert BGR (OpenCV) to RGB (PIL)
         try:
-            rgb_array = cv2.cvtColor(frame_array, cv2.COLOR_BGR2RGB)
-            pil_image = Image.fromarray(frame_array)
+            pil_image = Image.fromarray(frame_array)  # Fixed: Use rgb_array instead of frame_array
         except Exception as e:
             logger.error(f"Error converting to PIL Image: {e}")
             return
 
         # Create draw object for text overlays
-        draw = ImageDraw.Draw(pil_image)
+        draw = ImageDraw.Draw(pil_image, 'RGBA')  # Use RGBA mode for transparency
 
         # Prepare text overlays
         texts = []
@@ -101,26 +100,37 @@ class CameraManager:
 
         if mission_state.frame_data:
             try:
-                texts.append(f"Frame ID: {mission_state.frame_data.frame_number}%")
+                texts.append(f"Frame ID: {mission_state.frame_data.frame_number}")
             except AttributeError as e:
                 logger.error(f"Error accessing drone_data: {e}")
 
         texts.append(f"FPS: {mission_state.fps}Hz")
 
-        if mission_state.detected_faces:
-            try:
-                texts.append(f"Faces: {len(mission_state.detected_faces)}")
-            except Exception as e:
-                logger.error(f"Error processing detected_faces: {e}")
+        # Calculate rectangle bounds to encompass all text
+        padding = self.hud.PADDING
+        y_offset = self.hud.Y_OFFSET
+        line_spacing = self.hud.LINE_SPACING
+        text_heights = [self.hud.font.getbbox(text)[3] for text in texts]  # Height of each text line
+        total_text_height = sum(text_heights) + (len(texts) - 1) * line_spacing
+        max_text_width = max(self.hud.font.getbbox(text)[2] for text in texts)  # Widest text
 
+        # Define rectangle coordinates
+        rect_x0 = padding - 5
+        rect_y0 = y_offset - 5
+        rect_x1 = padding + max_text_width + 5
+        rect_y1 = y_offset + total_text_height + 5
 
-
+        # Draw semi-transparent rectangle (RGBA: 0-255, alpha=100 for moderate transparency)
+        draw.rectangle(
+            (rect_x0, rect_y0, rect_x1, rect_y1),
+            fill=(0, 0, 0, 100)  # Black with transparency
+        )
 
         # Render text overlays using HUD parameters
         for i, text in enumerate(texts):
             try:
                 draw.text(
-                    (self.hud.PADDING, self.hud.Y_OFFSET + i * self.hud.LINE_SPACING),
+                    (padding, y_offset + i * line_spacing),
                     text,
                     font=self.hud.font,
                     fill=self.hud.FONT_COLOR

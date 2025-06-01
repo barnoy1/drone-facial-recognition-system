@@ -69,8 +69,7 @@ class Presenter:
         self.view.update_frame(frame)
 
     def _on_telemetry_updated(self, mission_state: MissionState) -> None:
-        mission_state_status_dict = self.mission_manager.get_detailed_status(mission_state)
-        self.view.update_telemetry_panel(mission_state_status_dict)
+        self.view.update_telemetry_panel(mission_state)
 
     def _on_error(self, error: str) -> None:
         """Handle errors."""

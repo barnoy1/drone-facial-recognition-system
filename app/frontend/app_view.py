@@ -7,6 +7,7 @@ from PySide6.QtGui import QImage, QPixmap, QPainter, QPen, QBrush, QColor
 import numpy as np
 from typing import List, Optional, Dict, Any
 
+from app.backend import MissionManager
 from app.backend.container import MissionState
 from app.backend.pipeline.pipeline import PipelineNodeType
 
@@ -406,11 +407,11 @@ class AppView(QMainWindow):
         qimg = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
         self.stream_label.setPixmap(QPixmap.fromImage(qimg))
 
-    def update_pipeline_state(self, state: PipelineNodeType) -> None:
+    def update_pipeline_state(self, mission_state: MissionState) -> None:
         """Update pipeline state visualization with ripple effects."""
         for i, node in enumerate(self.pipeline_nodes):
             node_name = node.label.text()
-            if node_name == state.pipeline_current_node.name.upper():
+            if node_name == mission_state.pipeline_current_node.name.upper():
                 self.current_node_index = i
                 break
         for i, node in enumerate(self.pipeline_nodes):
@@ -423,24 +424,28 @@ class AppView(QMainWindow):
         for i, line in enumerate(self.connection_lines):
             line.set_active(i < self.current_node_index)
 
-    def update_telemetry_panel(self, mission_state: Dict[str, Any]) -> None:
+    def update_telemetry_panel(self, mission_state: MissionState) -> None:
+
+        mission_manager = MissionManager.instance()
+        mission_state_dict = mission_manager.get_detailed_status(mission_state)
+
+
         """Update the status panel with mission status data and sync pipeline nodes."""
         for field, label in self.status_labels.items():
             if field.startswith("drone_data."):
                 subfield = field.split(".")[1]
-                value = mission_state.get("drone_data", {}).get(subfield, "N/A") if mission_state.get(
+                value = mission_state_dict.get("drone_data", {}).get(subfield, "N/A") if mission_state_dict.get(
                     "drone_data") else "N/A"
             else:
-                value = mission_state.get(field, "N/A")
+                value = mission_state_dict.get(field, "N/A")
             label.setText(str(value))
 
         # Synchronize pipeline nodes with pipeline_state
-        pipeline_state = mission_state.get("pipeline_state", None)
+        pipeline_state = mission_state_dict.get("pipeline_state", None)
         if pipeline_state:
             try:
                 # Map string to PipelineNodeType
-                state_enum = PipelineNodeType[pipeline_state.upper()]
-                self.update_pipeline_state(state_enum)
+                self.update_pipeline_state(mission_state)
             except KeyError:
                 # Handle invalid pipeline_state
                 self.log_message(f"Warning: Invalid pipeline state '{pipeline_state}' received.")

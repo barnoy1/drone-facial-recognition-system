@@ -13,7 +13,7 @@ from app import logger
 class HUD:
     FONT = "arial.ttf"  # Path to font file (update to valid path or use default)
     FONT_SCALE = 20  # Font size in pixels (adjusted for PIL, ~0.7 in OpenCV)
-    FONT_COLOR = (150, 255, 0)  # White text (RGB)
+    FONT_COLOR = (255, 255, 0)  # text (RGB)
     THICKNESS = 2  # Not used in PIL; kept for compatibility
     LINE_TYPE = None  # Not used in PIL; kept for compatibility
     PADDING = 10
