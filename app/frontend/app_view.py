@@ -313,7 +313,6 @@ class AppView(QMainWindow):
             PipelineNodeType.IDLE,
             PipelineNodeType.LAUNCH,
             PipelineNodeType.FIND_TARGET,
-            PipelineNodeType.DETECT_FACE,
             PipelineNodeType.IDENTIFY_FACE,
             PipelineNodeType.TRACK_TARGET,
             PipelineNodeType.FIND_HOME,

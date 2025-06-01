@@ -19,7 +19,7 @@ class FindTarget(PipelineNode):
         try:
             if self.is_done():
                 from app.backend import Detect
-                current_node = nodes.get(PipelineNodeType.DETECT_FACE)
+                current_node = nodes.get(PipelineNodeType.IDENTIFY_FACE)
                 mission_state.status = MissionStatus.RUNNING
                 return current_node
             else:
@@ -30,7 +30,7 @@ class FindTarget(PipelineNode):
 
                 # debugging (skip this state)
                 if ConfigManager.pipeline_config.skip_find_target_node:
-                    current_node = nodes.get(PipelineNodeType.DETECT_FACE)
+                    current_node = nodes.get(PipelineNodeType.IDENTIFY_FACE)
                     self.state = PipelineState.SKIPPED
                     sleep(1)
                     return current_node

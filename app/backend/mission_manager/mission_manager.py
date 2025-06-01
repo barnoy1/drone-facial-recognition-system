@@ -11,7 +11,6 @@ from .frame_processor import FrameProcessor
 from .callback_manager import CallbackManager
 from .timer_manager import TimerManager
 from app.core.utilities.decorators.singleton import Singleton
-from ..pipeline.detect_face_node import DetectFace
 from ..pipeline.find_home_node import FindHome
 from ..pipeline.find_target_node import FindTarget
 from ..pipeline.identify_face_node import IdentifyFace
@@ -146,7 +145,6 @@ class MissionManager(QObject):
         self.pipeline.register_node(PipelineNodeType.IDLE, Idle(self.drone_controller.tello))
         self.pipeline.register_node(PipelineNodeType.LAUNCH, Launch(self.drone_controller.tello))
         self.pipeline.register_node(PipelineNodeType.FIND_TARGET, FindTarget(self.drone_controller.tello))
-        self.pipeline.register_node(PipelineNodeType.DETECT_FACE, DetectFace(self.drone_controller.tello))
         self.pipeline.register_node(PipelineNodeType.IDENTIFY_FACE, IdentifyFace(self.drone_controller.tello))
         self.pipeline.register_node(PipelineNodeType.TRACK_TARGET, TrackTarget(self.drone_controller.tello))
         self.pipeline.register_node(PipelineNodeType.FIND_HOME, FindHome(self.drone_controller.tello))

@@ -99,6 +99,12 @@ class CameraManager:
             logger.error(f"Error accessing pipeline_state.name: {e}")
             texts.append("State: Unknown")
 
+        if mission_state.frame_data:
+            try:
+                texts.append(f"Frame ID: {mission_state.frame_data.frame_number}%")
+            except AttributeError as e:
+                logger.error(f"Error accessing drone_data: {e}")
+
         texts.append(f"FPS: {mission_state.fps}Hz")
 
         if mission_state.detected_faces:
@@ -107,12 +113,7 @@ class CameraManager:
             except Exception as e:
                 logger.error(f"Error processing detected_faces: {e}")
 
-        if mission_state.drone_data:
-            try:
-                texts.append(f"Battery: {mission_state.drone_data.battery}%")
-                texts.append(f"Height: {mission_state.drone_data.height:.1f}m")
-            except AttributeError as e:
-                logger.error(f"Error accessing drone_data: {e}")
+
 
 
         # Render text overlays using HUD parameters

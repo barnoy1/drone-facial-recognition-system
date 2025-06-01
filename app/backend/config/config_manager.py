@@ -11,12 +11,12 @@ from app.core.utilities.json import pretty_print_dict
 @dataclass
 class FaceConfig:
     embeddings_file: str = ''
+    similarity_threshold: float = 0.0
 
 @dataclass
 class PipelineConfig:
     skip_launch_node: bool = False
     skip_find_target_node: bool = False
-    skip_detect_face_node: bool = False
     skip_identify_face_node: bool = False
     skip_track_target_node: bool = False
     skip_find_home_node: bool = False
@@ -69,6 +69,7 @@ class ConfigManager:
 
         ConfigManager.face_config = FaceConfig(
             embeddings_file=face_config.get('embeddings_file', ''),
+            similarity_threshold=face_config.get('similarity_threshold', 0.3)
         )
 
         ConfigManager.tello_config = TelloConfig(
@@ -83,7 +84,6 @@ class ConfigManager:
         ConfigManager.pipeline_config = PipelineConfig(
             skip_launch_node=pipeline_config.get('skip_launch_node', False),
             skip_find_target_node=pipeline_config.get('skip_find_target_node', False),
-            skip_detect_face_node=pipeline_config.get('skip_detect_face_node', False),
             skip_identify_face_node=pipeline_config.get('skip_identify_face_node', False),
             skip_track_target_node=pipeline_config.get('skip_track_target_node', False),
             skip_find_home_node=pipeline_config.get('skip_find_home_node', False),

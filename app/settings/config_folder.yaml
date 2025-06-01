@@ -9,8 +9,10 @@ tello:
 pipeline:
     skip_launch_node: True
     skip_find_target_node: True
-    skip_detect_face_node: True
     skip_identify_face_node: True
     skip_track_target_node: True
     skip_find_home_node: True
     skip_land_node: True
+face:
+  embeddings_file: '/home/ron/repo/projects/drone-facial-recognition-system/app/core/face/dataset/lfw_dataset/embeddings.npy'
+  similarity_threshold: 0.3

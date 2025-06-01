@@ -19,7 +19,7 @@ class Land(PipelineNode):
         try:
             if self.is_done():
                 from app.backend import Idle
-                current_node = nodes.get(PipelineNodeType.Idle)
+                # current_node = nodes.get(PipelineNodeType.Idle)
                 mission_state.status = MissionStatus.SUCCESS
                 return current_node
             else:
@@ -31,7 +31,7 @@ class Land(PipelineNode):
                 # debugging (skip this state)
                 if ConfigManager.pipeline_config.skip_land_node:
                     # current_node = nodes.get(PipelineNodeType.IDLE)
-                    # self.state = PipelineState.SKIPPED
+                    self.state = PipelineState.SKIPPED
                     sleep(1)
                     return current_node
             return current_node
