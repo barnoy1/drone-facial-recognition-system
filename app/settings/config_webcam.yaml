@@ -15,5 +15,5 @@ pipeline:
     skip_land_node: True
 
 face:
-  embeddings_file: '/home/ron/repo/projects/drone-facial-recognition-system/app/core/face/dataset/lfw_dataset/embeddings.npy'
+  embeddings_file: '/home/ron/repo/projects/drone-facial-recognition-system/app/core/face/dataset/lior_dataset/embeddings.npy'
   similarity_threshold: 0.8
